@@ -129,6 +129,36 @@ export const syncService = {
       });
     }
 
+    // 6. Handle TrackedUsers metadata refresh
+    const trackedUsers = await prisma.trackedUser.findMany({
+      where: { robloxAccountId: account.id },
+      select: { robloxUserId: true },
+    });
+
+    if (trackedUsers.length > 0) {
+      const trackedUserIds = trackedUsers.map((u) => Number(u.robloxUserId));
+      const userInfos = await robloxService.getUsersBatch(cookie, trackedUserIds);
+      const infoMap = new Map(userInfos.map((u) => [BigInt(u.id), u]));
+
+      for (const tu of trackedUsers) {
+        const info = infoMap.get(tu.robloxUserId);
+        if (info) {
+          await prisma.trackedUser.update({
+            where: {
+              robloxAccountId_robloxUserId: {
+                robloxAccountId: account.id,
+                robloxUserId: tu.robloxUserId,
+              },
+            },
+            data: {
+              username: info.name,
+              displayName: info.displayName,
+            },
+          });
+        }
+      }
+    }
+
     return { added, removed, unchanged };
   },
 };
