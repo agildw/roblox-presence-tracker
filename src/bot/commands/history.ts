@@ -13,17 +13,31 @@ export function registerHistoryCommand(bot: Bot): void {
       return;
     }
 
-    const sessions = await analyticsService.getRecentSessions(account.id, 10);
+    const nameArg = ctx.match?.trim();
+    let subjectId: bigint | undefined;
+    let title = '📜 <b>Recent Game Sessions (Last 10)</b>';
+
+    if (nameArg) {
+      const foundId = await analyticsService.getSubjectByName(account.id, nameArg);
+      if (!foundId) {
+        await ctx.reply(`🔍 User "<code>${nameArg}</code>" not found in your tracked friends or users.`, { parse_mode: 'HTML' });
+        return;
+      }
+      subjectId = foundId;
+      title = `📜 <b>Recent Sessions for ${nameArg}</b>`;
+    }
+
+    const sessions = await analyticsService.getRecentSessions(account.id, 10, subjectId);
     
     if (sessions.length === 0) {
-      await ctx.reply('📭 No recent game sessions found.');
+      await ctx.reply(nameArg ? `📭 No recent game sessions found for <b>${nameArg}</b>.` : '📭 No recent game sessions found.', { parse_mode: 'HTML' });
       return;
     }
 
     const subjectIds = Array.from(new Set(sessions.map(s => s.subjectId)));
     const namesMap = await analyticsService.getSubjectNames(account.id, subjectIds);
 
-    const lines: string[] = ['📜 <b>Recent Game Sessions (Last 10)</b>', ''];
+    const lines: string[] = [title, ''];
     for (const s of sessions) {
       const gName = s.gameName || 'Unknown Game';
       const durationMins = s.duration ? Math.floor(s.duration / 60) : 0;

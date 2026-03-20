@@ -13,28 +13,50 @@ export function registerStatsCommand(bot: Bot): void {
       return;
     }
 
-    // Parse argument: /stats, /stats 30d, /stats all
-    const arg = ctx.match?.trim().toLowerCase();
+    // Parse arguments: /stats, /stats 30d, /stats Agil, /stats Agil 30d
+    const args = ctx.match?.trim().split(/\s+/) ?? [];
     let days: number | 'all' = 7;
-    let rangeLabel = 'Last 7 days';
+    let nameArg: string | undefined;
 
-    if (arg === '30d') {
-      days = 30;
-      rangeLabel = 'Last 30 days';
-    } else if (arg === 'all') {
-      days = 'all';
-      rangeLabel = 'All Time';
+    for (const arg of args) {
+      if (!arg) continue;
+      const lowered = arg.toLowerCase();
+      if (lowered === '30d') {
+        days = 30;
+      } else if (lowered === 'all') {
+        days = 'all';
+      } else if (lowered === '7d' || lowered === '7') {
+        days = 7;
+      } else {
+        // Assume anything else is part of the username
+        nameArg = nameArg ? `${nameArg} ${arg}` : arg;
+      }
     }
 
-    const stats = await analyticsService.getPlaytimeStats(account.id, days);
+    let rangeLabel = days === 'all' ? 'All Time' : `Last ${days} days`;
+    let subjectId: bigint | undefined;
+    let titlePrefix = '📊 <b>Playtime Stats';
+
+    if (nameArg) {
+      const foundId = await analyticsService.getSubjectByName(account.id, nameArg);
+      if (!foundId) {
+        await ctx.reply(`🔍 User "<code>${nameArg}</code>" not found in your tracked friends or users.`, { parse_mode: 'HTML' });
+        return;
+      }
+      subjectId = foundId;
+      titlePrefix += ` for ${nameArg}`;
+    }
+
+    const stats = await analyticsService.getPlaytimeStats(account.id, days, subjectId);
     
     if (stats.length === 0) {
       const timeStr = days === 'all' ? 'at all' : `in the last ${days} days`;
-      await ctx.reply(`📊 No playtime recorded ${timeStr}.`);
+      const userStr = nameArg ? ` for <b>${nameArg}</b>` : '';
+      await ctx.reply(`📊 No playtime recorded${userStr} ${timeStr}.`, { parse_mode: 'HTML' });
       return;
     }
 
-    const lines: string[] = [`📊 <b>Playtime Stats (${rangeLabel})</b>`, ''];
+    const lines: string[] = [`${titlePrefix} (${rangeLabel})</b>`, ''];
     
     // show top 15 games
     const topStats = stats.slice(0, 15);
