@@ -19,12 +19,18 @@ export const analyticsService = {
   /**
    * Get recent completed game sessions
    */
-  async getRecentSessions(accountId: number, limit = 10) {
+  async getRecentSessions(accountId: number, limit = 10, subjectId?: bigint) {
+    const where: any = {
+      robloxAccountId: accountId,
+      endTime: { not: null },
+    };
+
+    if (subjectId) {
+      where.subjectId = subjectId;
+    }
+
     return prisma.gameSession.findMany({
-      where: {
-        robloxAccountId: accountId,
-        endTime: { not: null },
-      },
+      where,
       orderBy: {
         endTime: 'desc',
       },
@@ -35,11 +41,15 @@ export const analyticsService = {
   /**
    * Get total playtime grouped by game over the last N days
    */
-  async getPlaytimeStats(accountId: number, days: number | 'all' = 7) {
+  async getPlaytimeStats(accountId: number, days: number | 'all' = 7, subjectId?: bigint) {
     const where: any = {
       robloxAccountId: accountId,
       duration: { not: null },
     };
+
+    if (subjectId) {
+      where.subjectId = subjectId;
+    }
 
     if (days !== 'all') {
       const since = new Date();
@@ -91,5 +101,40 @@ export const analyticsService = {
       map.set(t.robloxUserId, `${t.displayName} (@${t.username})`);
     }
     return map;
+  },
+
+  /**
+   * Find a subject (Friend or TrackedUser) by username or displayName (case-insensitive)
+   */
+  async getSubjectByName(accountId: number, name: string) {
+    const normalized = name.toLowerCase().replace('@', '');
+
+    // 1. Try friends
+    const friend = await prisma.friend.findFirst({
+      where: {
+        robloxAccountId: accountId,
+        OR: [
+          { username: { equals: normalized } },
+          { displayName: { equals: name } }
+        ]
+      },
+      select: { friendUserId: true }
+    });
+    if (friend) return friend.friendUserId;
+
+    // 2. Try tracked users
+    const tracked = await prisma.trackedUser.findFirst({
+      where: {
+        robloxAccountId: accountId,
+        OR: [
+          { username: { equals: normalized } },
+          { displayName: { equals: name } }
+        ]
+      },
+      select: { robloxUserId: true }
+    });
+    if (tracked) return tracked.robloxUserId;
+
+    return null;
   }
 };
