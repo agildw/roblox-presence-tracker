@@ -23,19 +23,21 @@ export function registerStatusCommand(bot: Bot): void {
     const subjectIds = Array.from(new Set(sessions.map(s => s.subjectId)));
     const namesMap = await analyticsService.getSubjectNames(account.id, subjectIds);
 
-    const lines: string[] = ['🎮 *Current Active Sessions*', ''];
+    const lines: string[] = ['🎮 <b>Current Active Sessions</b>', ''];
     for (const s of sessions) {
       const gName = s.gameName || 'Unknown Game';
       const durationMins = Math.floor((new Date().getTime() - s.startTime.getTime()) / 1000 / 60);
       const name = namesMap.get(s.subjectId) || s.subjectId.toString();
       
-      let sessionStr = `• **${name}** has been playing **${gName}** for ${durationMins} mins`;
+      const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));
+
+      let sessionStr = `• <b>${escapeHtml(name)}</b> has been playing <b>${escapeHtml(gName)}</b> for ${durationMins} mins`;
       if (s.placeId && s.serverId) {
-        sessionStr += `\n  [🎮 Join Game](https://www.roblox.com/games/start?placeId=${s.placeId}&gameId=${s.serverId})`;
+        sessionStr += `\n  <a href="https://www.roblox.com/games/start?placeId=${s.placeId}&gameId=${s.serverId}">🎮 Join Game</a>`;
       }
       lines.push(sessionStr);
     }
 
-    await ctx.reply(lines.join('\n'), { parse_mode: 'Markdown' });
+    await ctx.reply(lines.join('\n'), { parse_mode: 'HTML' });
   });
 }

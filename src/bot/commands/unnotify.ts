@@ -10,7 +10,7 @@ export function registerUnnotifyCommand(bot: Bot): void {
     // Check account
     const account = await accountService.getAccount(telegramId);
     if (!account) {
-      await ctx.reply('⚠️ Connect your Roblox account first using `/setcookie`.', { parse_mode: 'Markdown' });
+      await ctx.reply('⚠️ Connect your Roblox account first using <code>/setcookie</code>.', { parse_mode: 'HTML' });
       return;
     }
 
@@ -18,9 +18,9 @@ export function registerUnnotifyCommand(bot: Bot): void {
     const rawArgs = ctx.match?.trim().split(/\s+/);
     if (!rawArgs || rawArgs.length < 1 || !rawArgs[0]) {
       await ctx.reply(
-        '⚠️ Usage: `/unnotify <username> [online|offline|game|all]`\n\n' +
-        'Example: `/unnotify RobloxUser123 all`',
-        { parse_mode: 'Markdown' }
+        '⚠️ Usage: <code>/unnotify &lt;username&gt; [online|offline|game|all]</code>\n\n' +
+        'Example: <code>/unnotify RobloxUser123 all</code>',
+        { parse_mode: 'HTML' }
       );
       return;
     }
@@ -30,7 +30,7 @@ export function registerUnnotifyCommand(bot: Bot): void {
 
     const validTypes = ['online', 'offline', 'game', 'all'];
     if (!validTypes.includes(eventType)) {
-      await ctx.reply('⚠️ Invalid event type. Use `online`, `offline`, `game`, or `all`.', { parse_mode: 'Markdown' });
+      await ctx.reply('⚠️ Invalid event type. Use <code>online</code>, <code>offline</code>, <code>game</code>, or <code>all</code>.', { parse_mode: 'HTML' });
       return;
     }
 
@@ -44,7 +44,8 @@ export function registerUnnotifyCommand(bot: Bot): void {
     }) : null;
 
     if (!friend && !tracked) {
-      await ctx.reply(`⚠️ Cannot find user \`${targetUsername}\` in your friends or tracked users.`, { parse_mode: 'Markdown' });
+      const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));
+      await ctx.reply(`⚠️ Cannot find user <code>${escapeHtml(targetUsername)}</code> in your friends or tracked users.`, { parse_mode: 'HTML' });
       return;
     }
 
@@ -62,6 +63,7 @@ export function registerUnnotifyCommand(bot: Bot): void {
       await prisma.trackedUser.update({ where: { id: dbId }, data: dataToUpdate });
     }
 
-    await ctx.reply(`✅ Removed notification filters for **${targetUsername}**.\n\nFilters disabled: \`${eventType}\``, { parse_mode: 'Markdown' });
+    const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));
+    await ctx.reply(`✅ Removed notification filters for <b>${escapeHtml(targetUsername)}</b>.\n\nFilters disabled: <code>${eventType}</code>`, { parse_mode: 'HTML' });
   });
 }

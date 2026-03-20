@@ -23,18 +23,20 @@ export function registerHistoryCommand(bot: Bot): void {
     const subjectIds = Array.from(new Set(sessions.map(s => s.subjectId)));
     const namesMap = await analyticsService.getSubjectNames(account.id, subjectIds);
 
-    const lines: string[] = ['📜 *Recent Game Sessions (Last 10)*', ''];
+    const lines: string[] = ['📜 <b>Recent Game Sessions (Last 10)</b>', ''];
     for (const s of sessions) {
       const gName = s.gameName || 'Unknown Game';
       const durationMins = s.duration ? Math.floor(s.duration / 60) : 0;
       const name = namesMap.get(s.subjectId) || s.subjectId.toString();
       
+      const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));
+
       // format date nicely
       const dateStr = s.startTime.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       
-      lines.push(`• **${name}** played **${gName}** for ${durationMins} mins _(${dateStr})_`);
+      lines.push(`• <b>${escapeHtml(name)}</b> played <b>${escapeHtml(gName)}</b> for ${durationMins} mins <i>(${dateStr})</i>`);
     }
 
-    await ctx.reply(lines.join('\n'), { parse_mode: 'Markdown' });
+    await ctx.reply(lines.join('\n'), { parse_mode: 'HTML' });
   });
 }

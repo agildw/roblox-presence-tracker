@@ -9,7 +9,7 @@ export function registerStatsCommand(bot: Bot): void {
 
     const account = await accountService.getAccount(telegramId);
     if (!account) {
-      await ctx.reply('⚠️ No account connected. Use `/setcookie <cookie>` first.', { parse_mode: 'Markdown' });
+      await ctx.reply('⚠️ No account connected. Use <code>/setcookie &lt;cookie&gt;</code> first.', { parse_mode: 'HTML' });
       return;
     }
 
@@ -34,20 +34,22 @@ export function registerStatsCommand(bot: Bot): void {
       return;
     }
 
-    const lines: string[] = [`📊 *Playtime Stats (${rangeLabel})*`, ''];
+    const lines: string[] = [`📊 <b>Playtime Stats (${rangeLabel})</b>`, ''];
     
     // show top 15 games
     const topStats = stats.slice(0, 15);
+    const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));
+
     for (const stat of topStats) {
       const durationStr = formatDuration(stat.duration);
-      lines.push(`• **${stat.game}**: ${durationStr}`);
+      lines.push(`• <b>${escapeHtml(stat.game)}</b>: ${durationStr}`);
     }
 
     if (stats.length > 15) {
-      lines.push(`\n_...and ${stats.length - 15} more games_`);
+      lines.push(`\n<i>...and ${stats.length - 15} more games</i>`);
     }
 
-    await ctx.reply(lines.join('\n'), { parse_mode: 'Markdown' });
+    await ctx.reply(lines.join('\n'), { parse_mode: 'HTML' });
   });
 }
 

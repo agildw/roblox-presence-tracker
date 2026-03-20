@@ -32,10 +32,10 @@ export function registerSetCookieCommand(bot: Bot): void {
 
     if (!cookie) {
       await ctx.reply(
-        '⚠️ Please provide your `.ROBLOSECURITY` cookie.\n\n' +
-          'Usage: `/setcookie <your_cookie>`\n\n' +
+        '⚠️ Please provide your <code>.ROBLOSECURITY</code> cookie.\n\n' +
+          'Usage: <code>/setcookie &lt;your_cookie&gt;</code>\n\n' +
           '🔐 Your message will be deleted immediately for security.',
-        { parse_mode: 'Markdown' },
+        { parse_mode: 'HTML' },
       );
       return;
     }
@@ -60,15 +60,16 @@ export function registerSetCookieCommand(bot: Bot): void {
       );
 
       const greeting = isNew ? '✅ Account connected!' : '✅ Account updated!';
+      const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));
 
       await ctx.api.editMessageText(
         ctx.chat.id,
         processing.message_id,
         `${greeting}\n\n` +
-          `👤 *${account.displayName}* (@${account.username})\n` +
-          `🆔 Roblox ID: \`${account.robloxUserId}\`\n\n` +
+          `👤 <b>${escapeHtml(account.displayName || '')}</b> (@${escapeHtml(account.username || '')})\n` +
+          `🆔 Roblox ID: <code>${account.robloxUserId}</code>\n\n` +
           `🔄 Syncing friends in the background…`,
-        { parse_mode: 'Markdown' },
+        { parse_mode: 'HTML' },
       );
 
       // ── 5. Trigger friend sync in background (non-blocking) ──────────────────
@@ -86,7 +87,7 @@ export function registerSetCookieCommand(bot: Bot): void {
       if (err instanceof RobloxApiError) {
         if (err.code === 401 || err.code === 403) {
           errorMsg =
-            '❌ *Invalid cookie.* It may have expired or be incorrect.\n\n' +
+            '❌ <b>Invalid cookie.</b> It may have expired or be incorrect.\n\n' +
             'Please log out and back in to Roblox, then copy a fresh cookie.';
         } else {
           errorMsg = `❌ Roblox API error (${err.code}): ${err.message}`;
@@ -97,7 +98,7 @@ export function registerSetCookieCommand(bot: Bot): void {
         ctx.chat.id,
         processing.message_id,
         errorMsg,
-        { parse_mode: 'Markdown' },
+        { parse_mode: 'HTML' },
       );
     }
   });

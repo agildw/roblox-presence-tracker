@@ -93,9 +93,10 @@ export const presenceService = {
     if (oldState.lastPresence !== 2 && newState.userPresenceType === 2) {
       console.log(`[PresenceService] [${type}] User started playing game: ${newState.gameId}`);
       
-      let msg = `Started playing **${newState.lastLocation || 'a game'}**.`;
+      const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));
+      let msg = `Started playing <b>${escapeHtml(newState.lastLocation || 'a game')}</b>.`;
       if (newState.placeId && newState.gameId) {
-        msg += `\n[🎮 Join Game](https://www.roblox.com/games/start?placeId=${newState.placeId}&gameId=${newState.gameId})`;
+        msg += `\n<a href="https://www.roblox.com/games/start?placeId=${newState.placeId}&gameId=${newState.gameId}">🎮 Join Game</a>`;
       }
       
       void notificationService.notifyPresenceChange(telegramId, recordId, type, msg, 'game');
@@ -111,9 +112,10 @@ export const presenceService = {
     } else if (gameChanged && oldState.lastPresence === 2 && newState.userPresenceType === 2) {
       console.log(`[PresenceService] [${type}] User changed game sequence: ${oldState.lastGameId} -> ${newState.gameId}`);
       
-      let msg = `Changed game to **${newState.lastLocation || 'another game'}**.`;
+      const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));
+      let msg = `Changed game to <b>${escapeHtml(newState.lastLocation || 'another game')}</b>.`;
       if (newState.placeId && newState.gameId) {
-        msg += `\n[🎮 Join Game](https://www.roblox.com/games/start?placeId=${newState.placeId}&gameId=${newState.gameId})`;
+        msg += `\n<a href="https://www.roblox.com/games/start?placeId=${newState.placeId}&gameId=${newState.gameId}">🎮 Join Game</a>`;
       }
       
       void notificationService.notifyPresenceChange(telegramId, recordId, type, msg, 'game');

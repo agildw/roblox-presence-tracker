@@ -20,7 +20,7 @@ export const notificationService = {
   async sendDirectMessage(telegramId: string, message: string): Promise<void> {
     if (!this.bot) return;
     try {
-      await this.bot.api.sendMessage(telegramId, message, { parse_mode: 'Markdown' });
+      await this.bot.api.sendMessage(telegramId, message, { parse_mode: 'HTML' });
     } catch (err) {
       console.error(`[NotificationService] Failed to send direct message to ${telegramId}:`, err);
     }
@@ -71,7 +71,8 @@ export const notificationService = {
 
     // 4. Send the message
     try {
-      await this.bot.api.sendMessage(telegramId, `🔔 *${displayName}*\n\n${message}`, { parse_mode: 'Markdown' });
+      const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));
+      await this.bot.api.sendMessage(telegramId, `🔔 <b>${escapeHtml(displayName)}</b>\n\n${message}`, { parse_mode: 'HTML' });
 
       // 5. Update debounce timestamp
       const updateData = { lastNotifiedAt: new Date() };
