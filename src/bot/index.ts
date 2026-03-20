@@ -9,6 +9,9 @@ import { registerUnnotifyCommand } from './commands/unnotify.js';
 import { registerStatusCommand } from './commands/status.js';
 import { registerHistoryCommand } from './commands/history.js';
 import { registerStatsCommand } from './commands/stats.js';
+import { registerTrackCommand } from './commands/track.js';
+import { registerUntrackCommand } from './commands/untrack.js';
+import { registerListCommand } from './commands/list.js';
 import { notificationService } from '../services/notification/notification.service.js';
 
 export function createBot(): Bot {
@@ -34,6 +37,9 @@ export function createBot(): Bot {
   registerStatusCommand(bot);
   registerHistoryCommand(bot);
   registerStatsCommand(bot);
+  registerTrackCommand(bot);
+  registerUntrackCommand(bot);
+  registerListCommand(bot);
 
   return bot;
 }

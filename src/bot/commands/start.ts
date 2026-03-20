@@ -15,7 +15,10 @@ export function registerStartCommand(bot: Bot): void {
         `📊 /stats — View weekly playtime stats\n` +
         `📜 /history — View session history\n` +
         `🔔 /notify — Enable notifications for a user\n` +
-        `🔕 /unnotify — Disable notifications for a user\n\n` +
+        `🔕 /unnotify — Disable notifications for a user\n` +
+        `👁️ /track — Track a user who is not your friend\n` +
+        `🙈 /untrack — Stop tracking a user\n` +
+        `📋 /list — List your manually tracked users\n\n` +
         `To get started, use /setcookie to connect your account.`,
       { parse_mode: 'HTML' }
     );

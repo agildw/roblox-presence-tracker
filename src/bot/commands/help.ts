@@ -10,7 +10,10 @@ export function registerHelpCommand(bot: Bot): void {
         `*Tracking*\n` +
         `/status \\<username\\> — Current presence of a user\n` +
         `/notify \\<username\\> — Enable notifications\n` +
-        `/unnotify \\<username\\> — Disable notifications\n\n` +
+        `/unnotify \\<username\\> — Disable notifications\n` +
+        `/track \\<username\\> — Track a user who is not your friend\n` +
+        `/untrack \\<username\\> — Stop tracking a user\n` +
+        `/list — List your manually tracked users\n\n` +
         `*Analytics*\n` +
         `/stats — Weekly playtime breakdown\n` +
         `/history \\<username\\> — Session history for a user`,

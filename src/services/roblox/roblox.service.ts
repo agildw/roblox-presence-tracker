@@ -140,6 +140,30 @@ export const robloxService = {
     return results;
   },
 
+  // ── getUserByUsername ────────────────────────────────────────────────────────
+  /**
+   * Resolves a single username to a Roblox User ID and display name.
+   */
+  async getUserByUsername(cookie: string, username: string): Promise<RobloxUser | null> {
+    const client = createRobloxClient(cookie);
+    try {
+      const res = await robloxPost<RobloxUsersResponse>(
+        client,
+        `${USERS_BASE}/v1/usernames/users`,
+        {
+          usernames: [username],
+          excludeBannedUsers: false,
+        },
+      );
+      return res.data?.[0] ?? null;
+    } catch (err) {
+      console.error(
+        `[RobloxService] getUserByUsername failed for ${username}: ${extractRobloxError(err)}`,
+      );
+      return null;
+    }
+  },
+
   // ── getPresence ─────────────────────────────────────────────────────────────
   /**
    * Fetches presence data for up to N user IDs.
