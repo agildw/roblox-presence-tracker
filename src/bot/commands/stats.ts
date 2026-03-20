@@ -13,21 +13,34 @@ export function registerStatsCommand(bot: Bot): void {
       return;
     }
 
-    const days = 7;
+    // Parse argument: /stats, /stats 30d, /stats all
+    const arg = ctx.match?.trim().toLowerCase();
+    let days: number | 'all' = 7;
+    let rangeLabel = 'Last 7 days';
+
+    if (arg === '30d') {
+      days = 30;
+      rangeLabel = 'Last 30 days';
+    } else if (arg === 'all') {
+      days = 'all';
+      rangeLabel = 'All Time';
+    }
+
     const stats = await analyticsService.getPlaytimeStats(account.id, days);
     
     if (stats.length === 0) {
-      await ctx.reply(`📊 No playtime recorded in the last ${days} days.`);
+      const timeStr = days === 'all' ? 'at all' : `in the last ${days} days`;
+      await ctx.reply(`📊 No playtime recorded ${timeStr}.`);
       return;
     }
 
-    const lines: string[] = [`📊 *Playtime Stats (Last ${days} days)*`, ''];
+    const lines: string[] = [`📊 *Playtime Stats (${rangeLabel})*`, ''];
     
     // show top 15 games
     const topStats = stats.slice(0, 15);
     for (const stat of topStats) {
-      const durationHours = (stat.duration / 3600).toFixed(1);
-      lines.push(`• **${stat.game}**: ${durationHours} hours`);
+      const durationStr = formatDuration(stat.duration);
+      lines.push(`• **${stat.game}**: ${durationStr}`);
     }
 
     if (stats.length > 15) {
@@ -37,3 +50,13 @@ export function registerStatsCommand(bot: Bot): void {
     await ctx.reply(lines.join('\n'), { parse_mode: 'Markdown' });
   });
 }
+
+function formatDuration(seconds: number): string {
+  if (seconds < 3600) {
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+  }
+  const hours = (seconds / 3600).toFixed(1);
+  return `${hours} hours`;
+}
+

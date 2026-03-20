@@ -35,16 +35,20 @@ export const analyticsService = {
   /**
    * Get total playtime grouped by game over the last N days
    */
-  async getPlaytimeStats(accountId: number, days = 7) {
-    const since = new Date();
-    since.setDate(since.getDate() - days);
+  async getPlaytimeStats(accountId: number, days: number | 'all' = 7) {
+    const where: any = {
+      robloxAccountId: accountId,
+      duration: { not: null },
+    };
+
+    if (days !== 'all') {
+      const since = new Date();
+      since.setDate(since.getDate() - days);
+      where.startTime = { gte: since };
+    }
 
     const sessions = await prisma.gameSession.findMany({
-      where: {
-        robloxAccountId: accountId,
-        startTime: { gte: since },
-        duration: { not: null },
-      },
+      where,
     });
 
     const stats = new Map<string, number>();
