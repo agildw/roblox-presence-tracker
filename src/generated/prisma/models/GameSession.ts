@@ -29,25 +29,29 @@ export type AggregateGameSession = {
 export type GameSessionAvgAggregateOutputType = {
   id: number | null
   robloxAccountId: number | null
-  friendUserId: number | null
+  subjectId: number | null
   placeId: number | null
+  universeId: number | null
   duration: number | null
 }
 
 export type GameSessionSumAggregateOutputType = {
   id: number | null
   robloxAccountId: number | null
-  friendUserId: number | null
-  placeId: number | null
+  subjectId: bigint | null
+  placeId: bigint | null
+  universeId: bigint | null
   duration: number | null
 }
 
 export type GameSessionMinAggregateOutputType = {
   id: number | null
   robloxAccountId: number | null
-  friendUserId: number | null
-  placeId: number | null
-  gameId: string | null
+  subjectId: bigint | null
+  subjectType: $Enums.SessionSubjectType | null
+  placeId: bigint | null
+  universeId: bigint | null
+  serverId: string | null
   gameName: string | null
   startTime: Date | null
   endTime: Date | null
@@ -58,9 +62,11 @@ export type GameSessionMinAggregateOutputType = {
 export type GameSessionMaxAggregateOutputType = {
   id: number | null
   robloxAccountId: number | null
-  friendUserId: number | null
-  placeId: number | null
-  gameId: string | null
+  subjectId: bigint | null
+  subjectType: $Enums.SessionSubjectType | null
+  placeId: bigint | null
+  universeId: bigint | null
+  serverId: string | null
   gameName: string | null
   startTime: Date | null
   endTime: Date | null
@@ -71,9 +77,11 @@ export type GameSessionMaxAggregateOutputType = {
 export type GameSessionCountAggregateOutputType = {
   id: number
   robloxAccountId: number
-  friendUserId: number
+  subjectId: number
+  subjectType: number
   placeId: number
-  gameId: number
+  universeId: number
+  serverId: number
   gameName: number
   startTime: number
   endTime: number
@@ -86,25 +94,29 @@ export type GameSessionCountAggregateOutputType = {
 export type GameSessionAvgAggregateInputType = {
   id?: true
   robloxAccountId?: true
-  friendUserId?: true
+  subjectId?: true
   placeId?: true
+  universeId?: true
   duration?: true
 }
 
 export type GameSessionSumAggregateInputType = {
   id?: true
   robloxAccountId?: true
-  friendUserId?: true
+  subjectId?: true
   placeId?: true
+  universeId?: true
   duration?: true
 }
 
 export type GameSessionMinAggregateInputType = {
   id?: true
   robloxAccountId?: true
-  friendUserId?: true
+  subjectId?: true
+  subjectType?: true
   placeId?: true
-  gameId?: true
+  universeId?: true
+  serverId?: true
   gameName?: true
   startTime?: true
   endTime?: true
@@ -115,9 +127,11 @@ export type GameSessionMinAggregateInputType = {
 export type GameSessionMaxAggregateInputType = {
   id?: true
   robloxAccountId?: true
-  friendUserId?: true
+  subjectId?: true
+  subjectType?: true
   placeId?: true
-  gameId?: true
+  universeId?: true
+  serverId?: true
   gameName?: true
   startTime?: true
   endTime?: true
@@ -128,9 +142,11 @@ export type GameSessionMaxAggregateInputType = {
 export type GameSessionCountAggregateInputType = {
   id?: true
   robloxAccountId?: true
-  friendUserId?: true
+  subjectId?: true
+  subjectType?: true
   placeId?: true
-  gameId?: true
+  universeId?: true
+  serverId?: true
   gameName?: true
   startTime?: true
   endTime?: true
@@ -228,9 +244,11 @@ export type GameSessionGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
 export type GameSessionGroupByOutputType = {
   id: number
   robloxAccountId: number
-  friendUserId: number
-  placeId: number
-  gameId: string | null
+  subjectId: bigint
+  subjectType: $Enums.SessionSubjectType
+  placeId: bigint
+  universeId: bigint | null
+  serverId: string | null
   gameName: string | null
   startTime: Date
   endTime: Date | null
@@ -264,9 +282,11 @@ export type GameSessionWhereInput = {
   NOT?: Prisma.GameSessionWhereInput | Prisma.GameSessionWhereInput[]
   id?: Prisma.IntFilter<"GameSession"> | number
   robloxAccountId?: Prisma.IntFilter<"GameSession"> | number
-  friendUserId?: Prisma.IntFilter<"GameSession"> | number
-  placeId?: Prisma.IntFilter<"GameSession"> | number
-  gameId?: Prisma.StringNullableFilter<"GameSession"> | string | null
+  subjectId?: Prisma.BigIntFilter<"GameSession"> | bigint | number
+  subjectType?: Prisma.EnumSessionSubjectTypeFilter<"GameSession"> | $Enums.SessionSubjectType
+  placeId?: Prisma.BigIntFilter<"GameSession"> | bigint | number
+  universeId?: Prisma.BigIntNullableFilter<"GameSession"> | bigint | number | null
+  serverId?: Prisma.StringNullableFilter<"GameSession"> | string | null
   gameName?: Prisma.StringNullableFilter<"GameSession"> | string | null
   startTime?: Prisma.DateTimeFilter<"GameSession"> | Date | string
   endTime?: Prisma.DateTimeNullableFilter<"GameSession"> | Date | string | null
@@ -278,9 +298,11 @@ export type GameSessionWhereInput = {
 export type GameSessionOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   robloxAccountId?: Prisma.SortOrder
-  friendUserId?: Prisma.SortOrder
+  subjectId?: Prisma.SortOrder
+  subjectType?: Prisma.SortOrder
   placeId?: Prisma.SortOrder
-  gameId?: Prisma.SortOrderInput | Prisma.SortOrder
+  universeId?: Prisma.SortOrderInput | Prisma.SortOrder
+  serverId?: Prisma.SortOrderInput | Prisma.SortOrder
   gameName?: Prisma.SortOrderInput | Prisma.SortOrder
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -296,9 +318,11 @@ export type GameSessionWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.GameSessionWhereInput[]
   NOT?: Prisma.GameSessionWhereInput | Prisma.GameSessionWhereInput[]
   robloxAccountId?: Prisma.IntFilter<"GameSession"> | number
-  friendUserId?: Prisma.IntFilter<"GameSession"> | number
-  placeId?: Prisma.IntFilter<"GameSession"> | number
-  gameId?: Prisma.StringNullableFilter<"GameSession"> | string | null
+  subjectId?: Prisma.BigIntFilter<"GameSession"> | bigint | number
+  subjectType?: Prisma.EnumSessionSubjectTypeFilter<"GameSession"> | $Enums.SessionSubjectType
+  placeId?: Prisma.BigIntFilter<"GameSession"> | bigint | number
+  universeId?: Prisma.BigIntNullableFilter<"GameSession"> | bigint | number | null
+  serverId?: Prisma.StringNullableFilter<"GameSession"> | string | null
   gameName?: Prisma.StringNullableFilter<"GameSession"> | string | null
   startTime?: Prisma.DateTimeFilter<"GameSession"> | Date | string
   endTime?: Prisma.DateTimeNullableFilter<"GameSession"> | Date | string | null
@@ -310,9 +334,11 @@ export type GameSessionWhereUniqueInput = Prisma.AtLeast<{
 export type GameSessionOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   robloxAccountId?: Prisma.SortOrder
-  friendUserId?: Prisma.SortOrder
+  subjectId?: Prisma.SortOrder
+  subjectType?: Prisma.SortOrder
   placeId?: Prisma.SortOrder
-  gameId?: Prisma.SortOrderInput | Prisma.SortOrder
+  universeId?: Prisma.SortOrderInput | Prisma.SortOrder
+  serverId?: Prisma.SortOrderInput | Prisma.SortOrder
   gameName?: Prisma.SortOrderInput | Prisma.SortOrder
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -331,9 +357,11 @@ export type GameSessionScalarWhereWithAggregatesInput = {
   NOT?: Prisma.GameSessionScalarWhereWithAggregatesInput | Prisma.GameSessionScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"GameSession"> | number
   robloxAccountId?: Prisma.IntWithAggregatesFilter<"GameSession"> | number
-  friendUserId?: Prisma.IntWithAggregatesFilter<"GameSession"> | number
-  placeId?: Prisma.IntWithAggregatesFilter<"GameSession"> | number
-  gameId?: Prisma.StringNullableWithAggregatesFilter<"GameSession"> | string | null
+  subjectId?: Prisma.BigIntWithAggregatesFilter<"GameSession"> | bigint | number
+  subjectType?: Prisma.EnumSessionSubjectTypeWithAggregatesFilter<"GameSession"> | $Enums.SessionSubjectType
+  placeId?: Prisma.BigIntWithAggregatesFilter<"GameSession"> | bigint | number
+  universeId?: Prisma.BigIntNullableWithAggregatesFilter<"GameSession"> | bigint | number | null
+  serverId?: Prisma.StringNullableWithAggregatesFilter<"GameSession"> | string | null
   gameName?: Prisma.StringNullableWithAggregatesFilter<"GameSession"> | string | null
   startTime?: Prisma.DateTimeWithAggregatesFilter<"GameSession"> | Date | string
   endTime?: Prisma.DateTimeNullableWithAggregatesFilter<"GameSession"> | Date | string | null
@@ -342,9 +370,11 @@ export type GameSessionScalarWhereWithAggregatesInput = {
 }
 
 export type GameSessionCreateInput = {
-  friendUserId: number
-  placeId: number
-  gameId?: string | null
+  subjectId: bigint | number
+  subjectType: $Enums.SessionSubjectType
+  placeId: bigint | number
+  universeId?: bigint | number | null
+  serverId?: string | null
   gameName?: string | null
   startTime: Date | string
   endTime?: Date | string | null
@@ -356,9 +386,11 @@ export type GameSessionCreateInput = {
 export type GameSessionUncheckedCreateInput = {
   id?: number
   robloxAccountId: number
-  friendUserId: number
-  placeId: number
-  gameId?: string | null
+  subjectId: bigint | number
+  subjectType: $Enums.SessionSubjectType
+  placeId: bigint | number
+  universeId?: bigint | number | null
+  serverId?: string | null
   gameName?: string | null
   startTime: Date | string
   endTime?: Date | string | null
@@ -367,9 +399,11 @@ export type GameSessionUncheckedCreateInput = {
 }
 
 export type GameSessionUpdateInput = {
-  friendUserId?: Prisma.IntFieldUpdateOperationsInput | number
-  placeId?: Prisma.IntFieldUpdateOperationsInput | number
-  gameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subjectId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  subjectType?: Prisma.EnumSessionSubjectTypeFieldUpdateOperationsInput | $Enums.SessionSubjectType
+  placeId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  universeId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  serverId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -381,9 +415,11 @@ export type GameSessionUpdateInput = {
 export type GameSessionUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   robloxAccountId?: Prisma.IntFieldUpdateOperationsInput | number
-  friendUserId?: Prisma.IntFieldUpdateOperationsInput | number
-  placeId?: Prisma.IntFieldUpdateOperationsInput | number
-  gameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subjectId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  subjectType?: Prisma.EnumSessionSubjectTypeFieldUpdateOperationsInput | $Enums.SessionSubjectType
+  placeId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  universeId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  serverId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -394,9 +430,11 @@ export type GameSessionUncheckedUpdateInput = {
 export type GameSessionCreateManyInput = {
   id?: number
   robloxAccountId: number
-  friendUserId: number
-  placeId: number
-  gameId?: string | null
+  subjectId: bigint | number
+  subjectType: $Enums.SessionSubjectType
+  placeId: bigint | number
+  universeId?: bigint | number | null
+  serverId?: string | null
   gameName?: string | null
   startTime: Date | string
   endTime?: Date | string | null
@@ -405,9 +443,11 @@ export type GameSessionCreateManyInput = {
 }
 
 export type GameSessionUpdateManyMutationInput = {
-  friendUserId?: Prisma.IntFieldUpdateOperationsInput | number
-  placeId?: Prisma.IntFieldUpdateOperationsInput | number
-  gameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subjectId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  subjectType?: Prisma.EnumSessionSubjectTypeFieldUpdateOperationsInput | $Enums.SessionSubjectType
+  placeId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  universeId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  serverId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -418,9 +458,11 @@ export type GameSessionUpdateManyMutationInput = {
 export type GameSessionUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   robloxAccountId?: Prisma.IntFieldUpdateOperationsInput | number
-  friendUserId?: Prisma.IntFieldUpdateOperationsInput | number
-  placeId?: Prisma.IntFieldUpdateOperationsInput | number
-  gameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subjectId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  subjectType?: Prisma.EnumSessionSubjectTypeFieldUpdateOperationsInput | $Enums.SessionSubjectType
+  placeId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  universeId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  serverId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -447,9 +489,11 @@ export type GameSessionOrderByRelevanceInput = {
 export type GameSessionCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   robloxAccountId?: Prisma.SortOrder
-  friendUserId?: Prisma.SortOrder
+  subjectId?: Prisma.SortOrder
+  subjectType?: Prisma.SortOrder
   placeId?: Prisma.SortOrder
-  gameId?: Prisma.SortOrder
+  universeId?: Prisma.SortOrder
+  serverId?: Prisma.SortOrder
   gameName?: Prisma.SortOrder
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrder
@@ -460,17 +504,20 @@ export type GameSessionCountOrderByAggregateInput = {
 export type GameSessionAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   robloxAccountId?: Prisma.SortOrder
-  friendUserId?: Prisma.SortOrder
+  subjectId?: Prisma.SortOrder
   placeId?: Prisma.SortOrder
+  universeId?: Prisma.SortOrder
   duration?: Prisma.SortOrder
 }
 
 export type GameSessionMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   robloxAccountId?: Prisma.SortOrder
-  friendUserId?: Prisma.SortOrder
+  subjectId?: Prisma.SortOrder
+  subjectType?: Prisma.SortOrder
   placeId?: Prisma.SortOrder
-  gameId?: Prisma.SortOrder
+  universeId?: Prisma.SortOrder
+  serverId?: Prisma.SortOrder
   gameName?: Prisma.SortOrder
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrder
@@ -481,9 +528,11 @@ export type GameSessionMaxOrderByAggregateInput = {
 export type GameSessionMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   robloxAccountId?: Prisma.SortOrder
-  friendUserId?: Prisma.SortOrder
+  subjectId?: Prisma.SortOrder
+  subjectType?: Prisma.SortOrder
   placeId?: Prisma.SortOrder
-  gameId?: Prisma.SortOrder
+  universeId?: Prisma.SortOrder
+  serverId?: Prisma.SortOrder
   gameName?: Prisma.SortOrder
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrder
@@ -494,8 +543,9 @@ export type GameSessionMinOrderByAggregateInput = {
 export type GameSessionSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   robloxAccountId?: Prisma.SortOrder
-  friendUserId?: Prisma.SortOrder
+  subjectId?: Prisma.SortOrder
   placeId?: Prisma.SortOrder
+  universeId?: Prisma.SortOrder
   duration?: Prisma.SortOrder
 }
 
@@ -541,10 +591,24 @@ export type GameSessionUncheckedUpdateManyWithoutAccountNestedInput = {
   deleteMany?: Prisma.GameSessionScalarWhereInput | Prisma.GameSessionScalarWhereInput[]
 }
 
+export type EnumSessionSubjectTypeFieldUpdateOperationsInput = {
+  set?: $Enums.SessionSubjectType
+}
+
+export type NullableBigIntFieldUpdateOperationsInput = {
+  set?: bigint | number | null
+  increment?: bigint | number
+  decrement?: bigint | number
+  multiply?: bigint | number
+  divide?: bigint | number
+}
+
 export type GameSessionCreateWithoutAccountInput = {
-  friendUserId: number
-  placeId: number
-  gameId?: string | null
+  subjectId: bigint | number
+  subjectType: $Enums.SessionSubjectType
+  placeId: bigint | number
+  universeId?: bigint | number | null
+  serverId?: string | null
   gameName?: string | null
   startTime: Date | string
   endTime?: Date | string | null
@@ -554,9 +618,11 @@ export type GameSessionCreateWithoutAccountInput = {
 
 export type GameSessionUncheckedCreateWithoutAccountInput = {
   id?: number
-  friendUserId: number
-  placeId: number
-  gameId?: string | null
+  subjectId: bigint | number
+  subjectType: $Enums.SessionSubjectType
+  placeId: bigint | number
+  universeId?: bigint | number | null
+  serverId?: string | null
   gameName?: string | null
   startTime: Date | string
   endTime?: Date | string | null
@@ -596,9 +662,11 @@ export type GameSessionScalarWhereInput = {
   NOT?: Prisma.GameSessionScalarWhereInput | Prisma.GameSessionScalarWhereInput[]
   id?: Prisma.IntFilter<"GameSession"> | number
   robloxAccountId?: Prisma.IntFilter<"GameSession"> | number
-  friendUserId?: Prisma.IntFilter<"GameSession"> | number
-  placeId?: Prisma.IntFilter<"GameSession"> | number
-  gameId?: Prisma.StringNullableFilter<"GameSession"> | string | null
+  subjectId?: Prisma.BigIntFilter<"GameSession"> | bigint | number
+  subjectType?: Prisma.EnumSessionSubjectTypeFilter<"GameSession"> | $Enums.SessionSubjectType
+  placeId?: Prisma.BigIntFilter<"GameSession"> | bigint | number
+  universeId?: Prisma.BigIntNullableFilter<"GameSession"> | bigint | number | null
+  serverId?: Prisma.StringNullableFilter<"GameSession"> | string | null
   gameName?: Prisma.StringNullableFilter<"GameSession"> | string | null
   startTime?: Prisma.DateTimeFilter<"GameSession"> | Date | string
   endTime?: Prisma.DateTimeNullableFilter<"GameSession"> | Date | string | null
@@ -608,9 +676,11 @@ export type GameSessionScalarWhereInput = {
 
 export type GameSessionCreateManyAccountInput = {
   id?: number
-  friendUserId: number
-  placeId: number
-  gameId?: string | null
+  subjectId: bigint | number
+  subjectType: $Enums.SessionSubjectType
+  placeId: bigint | number
+  universeId?: bigint | number | null
+  serverId?: string | null
   gameName?: string | null
   startTime: Date | string
   endTime?: Date | string | null
@@ -619,9 +689,11 @@ export type GameSessionCreateManyAccountInput = {
 }
 
 export type GameSessionUpdateWithoutAccountInput = {
-  friendUserId?: Prisma.IntFieldUpdateOperationsInput | number
-  placeId?: Prisma.IntFieldUpdateOperationsInput | number
-  gameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subjectId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  subjectType?: Prisma.EnumSessionSubjectTypeFieldUpdateOperationsInput | $Enums.SessionSubjectType
+  placeId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  universeId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  serverId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -631,9 +703,11 @@ export type GameSessionUpdateWithoutAccountInput = {
 
 export type GameSessionUncheckedUpdateWithoutAccountInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  friendUserId?: Prisma.IntFieldUpdateOperationsInput | number
-  placeId?: Prisma.IntFieldUpdateOperationsInput | number
-  gameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subjectId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  subjectType?: Prisma.EnumSessionSubjectTypeFieldUpdateOperationsInput | $Enums.SessionSubjectType
+  placeId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  universeId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  serverId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -643,9 +717,11 @@ export type GameSessionUncheckedUpdateWithoutAccountInput = {
 
 export type GameSessionUncheckedUpdateManyWithoutAccountInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  friendUserId?: Prisma.IntFieldUpdateOperationsInput | number
-  placeId?: Prisma.IntFieldUpdateOperationsInput | number
-  gameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subjectId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  subjectType?: Prisma.EnumSessionSubjectTypeFieldUpdateOperationsInput | $Enums.SessionSubjectType
+  placeId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  universeId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  serverId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -658,9 +734,11 @@ export type GameSessionUncheckedUpdateManyWithoutAccountInput = {
 export type GameSessionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   robloxAccountId?: boolean
-  friendUserId?: boolean
+  subjectId?: boolean
+  subjectType?: boolean
   placeId?: boolean
-  gameId?: boolean
+  universeId?: boolean
+  serverId?: boolean
   gameName?: boolean
   startTime?: boolean
   endTime?: boolean
@@ -674,9 +752,11 @@ export type GameSessionSelect<ExtArgs extends runtime.Types.Extensions.InternalA
 export type GameSessionSelectScalar = {
   id?: boolean
   robloxAccountId?: boolean
-  friendUserId?: boolean
+  subjectId?: boolean
+  subjectType?: boolean
   placeId?: boolean
-  gameId?: boolean
+  universeId?: boolean
+  serverId?: boolean
   gameName?: boolean
   startTime?: boolean
   endTime?: boolean
@@ -684,7 +764,7 @@ export type GameSessionSelectScalar = {
   createdAt?: boolean
 }
 
-export type GameSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "robloxAccountId" | "friendUserId" | "placeId" | "gameId" | "gameName" | "startTime" | "endTime" | "duration" | "createdAt", ExtArgs["result"]["gameSession"]>
+export type GameSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "robloxAccountId" | "subjectId" | "subjectType" | "placeId" | "universeId" | "serverId" | "gameName" | "startTime" | "endTime" | "duration" | "createdAt", ExtArgs["result"]["gameSession"]>
 export type GameSessionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.RobloxAccountDefaultArgs<ExtArgs>
 }
@@ -697,9 +777,11 @@ export type $GameSessionPayload<ExtArgs extends runtime.Types.Extensions.Interna
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
     robloxAccountId: number
-    friendUserId: number
-    placeId: number
-    gameId: string | null
+    subjectId: bigint
+    subjectType: $Enums.SessionSubjectType
+    placeId: bigint
+    universeId: bigint | null
+    serverId: string | null
     gameName: string | null
     startTime: Date
     endTime: Date | null
@@ -1077,9 +1159,11 @@ export interface Prisma__GameSessionClient<T, Null = never, ExtArgs extends runt
 export interface GameSessionFieldRefs {
   readonly id: Prisma.FieldRef<"GameSession", 'Int'>
   readonly robloxAccountId: Prisma.FieldRef<"GameSession", 'Int'>
-  readonly friendUserId: Prisma.FieldRef<"GameSession", 'Int'>
-  readonly placeId: Prisma.FieldRef<"GameSession", 'Int'>
-  readonly gameId: Prisma.FieldRef<"GameSession", 'String'>
+  readonly subjectId: Prisma.FieldRef<"GameSession", 'BigInt'>
+  readonly subjectType: Prisma.FieldRef<"GameSession", 'SessionSubjectType'>
+  readonly placeId: Prisma.FieldRef<"GameSession", 'BigInt'>
+  readonly universeId: Prisma.FieldRef<"GameSession", 'BigInt'>
+  readonly serverId: Prisma.FieldRef<"GameSession", 'String'>
   readonly gameName: Prisma.FieldRef<"GameSession", 'String'>
   readonly startTime: Prisma.FieldRef<"GameSession", 'DateTime'>
   readonly endTime: Prisma.FieldRef<"GameSession", 'DateTime'>

@@ -781,7 +781,9 @@ export const TelegramUserScalarFieldEnum = {
   id: 'id',
   telegramId: 'telegramId',
   username: 'username',
-  createdAt: 'createdAt'
+  firstName: 'firstName',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type TelegramUserScalarFieldEnum = (typeof TelegramUserScalarFieldEnum)[keyof typeof TelegramUserScalarFieldEnum]
@@ -812,8 +814,10 @@ export const FriendScalarFieldEnum = {
   notifyGame: 'notifyGame',
   lastPresence: 'lastPresence',
   lastGameId: 'lastGameId',
+  lastGameName: 'lastGameName',
   lastLocation: 'lastLocation',
   lastSeenAt: 'lastSeenAt',
+  lastNotifiedAt: 'lastNotifiedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -824,7 +828,7 @@ export type FriendScalarFieldEnum = (typeof FriendScalarFieldEnum)[keyof typeof 
 export const TrackedUserScalarFieldEnum = {
   id: 'id',
   robloxAccountId: 'robloxAccountId',
-  userId: 'userId',
+  robloxUserId: 'robloxUserId',
   username: 'username',
   displayName: 'displayName',
   notifyOnline: 'notifyOnline',
@@ -832,6 +836,9 @@ export const TrackedUserScalarFieldEnum = {
   notifyGame: 'notifyGame',
   lastPresence: 'lastPresence',
   lastGameId: 'lastGameId',
+  lastGameName: 'lastGameName',
+  lastSeenAt: 'lastSeenAt',
+  lastNotifiedAt: 'lastNotifiedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -842,9 +849,11 @@ export type TrackedUserScalarFieldEnum = (typeof TrackedUserScalarFieldEnum)[key
 export const GameSessionScalarFieldEnum = {
   id: 'id',
   robloxAccountId: 'robloxAccountId',
-  friendUserId: 'friendUserId',
+  subjectId: 'subjectId',
+  subjectType: 'subjectType',
   placeId: 'placeId',
-  gameId: 'gameId',
+  universeId: 'universeId',
+  serverId: 'serverId',
   gameName: 'gameName',
   startTime: 'startTime',
   endTime: 'endTime',
@@ -873,7 +882,8 @@ export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 export const TelegramUserOrderByRelevanceFieldEnum = {
   telegramId: 'telegramId',
-  username: 'username'
+  username: 'username',
+  firstName: 'firstName'
 } as const
 
 export type TelegramUserOrderByRelevanceFieldEnum = (typeof TelegramUserOrderByRelevanceFieldEnum)[keyof typeof TelegramUserOrderByRelevanceFieldEnum]
@@ -892,6 +902,7 @@ export const FriendOrderByRelevanceFieldEnum = {
   username: 'username',
   displayName: 'displayName',
   lastGameId: 'lastGameId',
+  lastGameName: 'lastGameName',
   lastLocation: 'lastLocation'
 } as const
 
@@ -901,14 +912,15 @@ export type FriendOrderByRelevanceFieldEnum = (typeof FriendOrderByRelevanceFiel
 export const TrackedUserOrderByRelevanceFieldEnum = {
   username: 'username',
   displayName: 'displayName',
-  lastGameId: 'lastGameId'
+  lastGameId: 'lastGameId',
+  lastGameName: 'lastGameName'
 } as const
 
 export type TrackedUserOrderByRelevanceFieldEnum = (typeof TrackedUserOrderByRelevanceFieldEnum)[keyof typeof TrackedUserOrderByRelevanceFieldEnum]
 
 
 export const GameSessionOrderByRelevanceFieldEnum = {
-  gameId: 'gameId',
+  serverId: 'serverId',
   gameName: 'gameName'
 } as const
 
@@ -943,9 +955,23 @@ export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
 
 
 /**
+ * Reference to a field of type 'BigInt'
+ */
+export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
+    
+
+
+/**
  * Reference to a field of type 'Boolean'
  */
 export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+/**
+ * Reference to a field of type 'SessionSubjectType'
+ */
+export type EnumSessionSubjectTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionSubjectType'>
     
 
 

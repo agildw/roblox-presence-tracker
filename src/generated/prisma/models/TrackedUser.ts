@@ -29,21 +29,21 @@ export type AggregateTrackedUser = {
 export type TrackedUserAvgAggregateOutputType = {
   id: number | null
   robloxAccountId: number | null
-  userId: number | null
+  robloxUserId: number | null
   lastPresence: number | null
 }
 
 export type TrackedUserSumAggregateOutputType = {
   id: number | null
   robloxAccountId: number | null
-  userId: number | null
+  robloxUserId: bigint | null
   lastPresence: number | null
 }
 
 export type TrackedUserMinAggregateOutputType = {
   id: number | null
   robloxAccountId: number | null
-  userId: number | null
+  robloxUserId: bigint | null
   username: string | null
   displayName: string | null
   notifyOnline: boolean | null
@@ -51,6 +51,9 @@ export type TrackedUserMinAggregateOutputType = {
   notifyGame: boolean | null
   lastPresence: number | null
   lastGameId: string | null
+  lastGameName: string | null
+  lastSeenAt: Date | null
+  lastNotifiedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -58,7 +61,7 @@ export type TrackedUserMinAggregateOutputType = {
 export type TrackedUserMaxAggregateOutputType = {
   id: number | null
   robloxAccountId: number | null
-  userId: number | null
+  robloxUserId: bigint | null
   username: string | null
   displayName: string | null
   notifyOnline: boolean | null
@@ -66,6 +69,9 @@ export type TrackedUserMaxAggregateOutputType = {
   notifyGame: boolean | null
   lastPresence: number | null
   lastGameId: string | null
+  lastGameName: string | null
+  lastSeenAt: Date | null
+  lastNotifiedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -73,7 +79,7 @@ export type TrackedUserMaxAggregateOutputType = {
 export type TrackedUserCountAggregateOutputType = {
   id: number
   robloxAccountId: number
-  userId: number
+  robloxUserId: number
   username: number
   displayName: number
   notifyOnline: number
@@ -81,6 +87,9 @@ export type TrackedUserCountAggregateOutputType = {
   notifyGame: number
   lastPresence: number
   lastGameId: number
+  lastGameName: number
+  lastSeenAt: number
+  lastNotifiedAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -90,21 +99,21 @@ export type TrackedUserCountAggregateOutputType = {
 export type TrackedUserAvgAggregateInputType = {
   id?: true
   robloxAccountId?: true
-  userId?: true
+  robloxUserId?: true
   lastPresence?: true
 }
 
 export type TrackedUserSumAggregateInputType = {
   id?: true
   robloxAccountId?: true
-  userId?: true
+  robloxUserId?: true
   lastPresence?: true
 }
 
 export type TrackedUserMinAggregateInputType = {
   id?: true
   robloxAccountId?: true
-  userId?: true
+  robloxUserId?: true
   username?: true
   displayName?: true
   notifyOnline?: true
@@ -112,6 +121,9 @@ export type TrackedUserMinAggregateInputType = {
   notifyGame?: true
   lastPresence?: true
   lastGameId?: true
+  lastGameName?: true
+  lastSeenAt?: true
+  lastNotifiedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -119,7 +131,7 @@ export type TrackedUserMinAggregateInputType = {
 export type TrackedUserMaxAggregateInputType = {
   id?: true
   robloxAccountId?: true
-  userId?: true
+  robloxUserId?: true
   username?: true
   displayName?: true
   notifyOnline?: true
@@ -127,6 +139,9 @@ export type TrackedUserMaxAggregateInputType = {
   notifyGame?: true
   lastPresence?: true
   lastGameId?: true
+  lastGameName?: true
+  lastSeenAt?: true
+  lastNotifiedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -134,7 +149,7 @@ export type TrackedUserMaxAggregateInputType = {
 export type TrackedUserCountAggregateInputType = {
   id?: true
   robloxAccountId?: true
-  userId?: true
+  robloxUserId?: true
   username?: true
   displayName?: true
   notifyOnline?: true
@@ -142,6 +157,9 @@ export type TrackedUserCountAggregateInputType = {
   notifyGame?: true
   lastPresence?: true
   lastGameId?: true
+  lastGameName?: true
+  lastSeenAt?: true
+  lastNotifiedAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -236,7 +254,7 @@ export type TrackedUserGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
 export type TrackedUserGroupByOutputType = {
   id: number
   robloxAccountId: number
-  userId: number
+  robloxUserId: bigint
   username: string | null
   displayName: string | null
   notifyOnline: boolean
@@ -244,6 +262,9 @@ export type TrackedUserGroupByOutputType = {
   notifyGame: boolean
   lastPresence: number | null
   lastGameId: string | null
+  lastGameName: string | null
+  lastSeenAt: Date | null
+  lastNotifiedAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: TrackedUserCountAggregateOutputType | null
@@ -274,7 +295,7 @@ export type TrackedUserWhereInput = {
   NOT?: Prisma.TrackedUserWhereInput | Prisma.TrackedUserWhereInput[]
   id?: Prisma.IntFilter<"TrackedUser"> | number
   robloxAccountId?: Prisma.IntFilter<"TrackedUser"> | number
-  userId?: Prisma.IntFilter<"TrackedUser"> | number
+  robloxUserId?: Prisma.BigIntFilter<"TrackedUser"> | bigint | number
   username?: Prisma.StringNullableFilter<"TrackedUser"> | string | null
   displayName?: Prisma.StringNullableFilter<"TrackedUser"> | string | null
   notifyOnline?: Prisma.BoolFilter<"TrackedUser"> | boolean
@@ -282,6 +303,9 @@ export type TrackedUserWhereInput = {
   notifyGame?: Prisma.BoolFilter<"TrackedUser"> | boolean
   lastPresence?: Prisma.IntNullableFilter<"TrackedUser"> | number | null
   lastGameId?: Prisma.StringNullableFilter<"TrackedUser"> | string | null
+  lastGameName?: Prisma.StringNullableFilter<"TrackedUser"> | string | null
+  lastSeenAt?: Prisma.DateTimeNullableFilter<"TrackedUser"> | Date | string | null
+  lastNotifiedAt?: Prisma.DateTimeNullableFilter<"TrackedUser"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"TrackedUser"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"TrackedUser"> | Date | string
   account?: Prisma.XOR<Prisma.RobloxAccountScalarRelationFilter, Prisma.RobloxAccountWhereInput>
@@ -290,7 +314,7 @@ export type TrackedUserWhereInput = {
 export type TrackedUserOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   robloxAccountId?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
+  robloxUserId?: Prisma.SortOrder
   username?: Prisma.SortOrderInput | Prisma.SortOrder
   displayName?: Prisma.SortOrderInput | Prisma.SortOrder
   notifyOnline?: Prisma.SortOrder
@@ -298,6 +322,9 @@ export type TrackedUserOrderByWithRelationInput = {
   notifyGame?: Prisma.SortOrder
   lastPresence?: Prisma.SortOrderInput | Prisma.SortOrder
   lastGameId?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastGameName?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastSeenAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastNotifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   account?: Prisma.RobloxAccountOrderByWithRelationInput
@@ -306,12 +333,12 @@ export type TrackedUserOrderByWithRelationInput = {
 
 export type TrackedUserWhereUniqueInput = Prisma.AtLeast<{
   id?: number
-  robloxAccountId_userId?: Prisma.TrackedUserRobloxAccountIdUserIdCompoundUniqueInput
+  robloxAccountId_robloxUserId?: Prisma.TrackedUserRobloxAccountIdRobloxUserIdCompoundUniqueInput
   AND?: Prisma.TrackedUserWhereInput | Prisma.TrackedUserWhereInput[]
   OR?: Prisma.TrackedUserWhereInput[]
   NOT?: Prisma.TrackedUserWhereInput | Prisma.TrackedUserWhereInput[]
   robloxAccountId?: Prisma.IntFilter<"TrackedUser"> | number
-  userId?: Prisma.IntFilter<"TrackedUser"> | number
+  robloxUserId?: Prisma.BigIntFilter<"TrackedUser"> | bigint | number
   username?: Prisma.StringNullableFilter<"TrackedUser"> | string | null
   displayName?: Prisma.StringNullableFilter<"TrackedUser"> | string | null
   notifyOnline?: Prisma.BoolFilter<"TrackedUser"> | boolean
@@ -319,15 +346,18 @@ export type TrackedUserWhereUniqueInput = Prisma.AtLeast<{
   notifyGame?: Prisma.BoolFilter<"TrackedUser"> | boolean
   lastPresence?: Prisma.IntNullableFilter<"TrackedUser"> | number | null
   lastGameId?: Prisma.StringNullableFilter<"TrackedUser"> | string | null
+  lastGameName?: Prisma.StringNullableFilter<"TrackedUser"> | string | null
+  lastSeenAt?: Prisma.DateTimeNullableFilter<"TrackedUser"> | Date | string | null
+  lastNotifiedAt?: Prisma.DateTimeNullableFilter<"TrackedUser"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"TrackedUser"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"TrackedUser"> | Date | string
   account?: Prisma.XOR<Prisma.RobloxAccountScalarRelationFilter, Prisma.RobloxAccountWhereInput>
-}, "id" | "robloxAccountId_userId">
+}, "id" | "robloxAccountId_robloxUserId">
 
 export type TrackedUserOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   robloxAccountId?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
+  robloxUserId?: Prisma.SortOrder
   username?: Prisma.SortOrderInput | Prisma.SortOrder
   displayName?: Prisma.SortOrderInput | Prisma.SortOrder
   notifyOnline?: Prisma.SortOrder
@@ -335,6 +365,9 @@ export type TrackedUserOrderByWithAggregationInput = {
   notifyGame?: Prisma.SortOrder
   lastPresence?: Prisma.SortOrderInput | Prisma.SortOrder
   lastGameId?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastGameName?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastSeenAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastNotifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.TrackedUserCountOrderByAggregateInput
@@ -350,7 +383,7 @@ export type TrackedUserScalarWhereWithAggregatesInput = {
   NOT?: Prisma.TrackedUserScalarWhereWithAggregatesInput | Prisma.TrackedUserScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"TrackedUser"> | number
   robloxAccountId?: Prisma.IntWithAggregatesFilter<"TrackedUser"> | number
-  userId?: Prisma.IntWithAggregatesFilter<"TrackedUser"> | number
+  robloxUserId?: Prisma.BigIntWithAggregatesFilter<"TrackedUser"> | bigint | number
   username?: Prisma.StringNullableWithAggregatesFilter<"TrackedUser"> | string | null
   displayName?: Prisma.StringNullableWithAggregatesFilter<"TrackedUser"> | string | null
   notifyOnline?: Prisma.BoolWithAggregatesFilter<"TrackedUser"> | boolean
@@ -358,12 +391,15 @@ export type TrackedUserScalarWhereWithAggregatesInput = {
   notifyGame?: Prisma.BoolWithAggregatesFilter<"TrackedUser"> | boolean
   lastPresence?: Prisma.IntNullableWithAggregatesFilter<"TrackedUser"> | number | null
   lastGameId?: Prisma.StringNullableWithAggregatesFilter<"TrackedUser"> | string | null
+  lastGameName?: Prisma.StringNullableWithAggregatesFilter<"TrackedUser"> | string | null
+  lastSeenAt?: Prisma.DateTimeNullableWithAggregatesFilter<"TrackedUser"> | Date | string | null
+  lastNotifiedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"TrackedUser"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"TrackedUser"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"TrackedUser"> | Date | string
 }
 
 export type TrackedUserCreateInput = {
-  userId: number
+  robloxUserId: bigint | number
   username?: string | null
   displayName?: string | null
   notifyOnline?: boolean
@@ -371,6 +407,9 @@ export type TrackedUserCreateInput = {
   notifyGame?: boolean
   lastPresence?: number | null
   lastGameId?: string | null
+  lastGameName?: string | null
+  lastSeenAt?: Date | string | null
+  lastNotifiedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   account: Prisma.RobloxAccountCreateNestedOneWithoutTrackedUsersInput
@@ -379,7 +418,7 @@ export type TrackedUserCreateInput = {
 export type TrackedUserUncheckedCreateInput = {
   id?: number
   robloxAccountId: number
-  userId: number
+  robloxUserId: bigint | number
   username?: string | null
   displayName?: string | null
   notifyOnline?: boolean
@@ -387,12 +426,15 @@ export type TrackedUserUncheckedCreateInput = {
   notifyGame?: boolean
   lastPresence?: number | null
   lastGameId?: string | null
+  lastGameName?: string | null
+  lastSeenAt?: Date | string | null
+  lastNotifiedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type TrackedUserUpdateInput = {
-  userId?: Prisma.IntFieldUpdateOperationsInput | number
+  robloxUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notifyOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -400,6 +442,9 @@ export type TrackedUserUpdateInput = {
   notifyGame?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastPresence?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   lastGameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastGameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.RobloxAccountUpdateOneRequiredWithoutTrackedUsersNestedInput
@@ -408,7 +453,7 @@ export type TrackedUserUpdateInput = {
 export type TrackedUserUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   robloxAccountId?: Prisma.IntFieldUpdateOperationsInput | number
-  userId?: Prisma.IntFieldUpdateOperationsInput | number
+  robloxUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notifyOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -416,6 +461,9 @@ export type TrackedUserUncheckedUpdateInput = {
   notifyGame?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastPresence?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   lastGameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastGameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -423,7 +471,7 @@ export type TrackedUserUncheckedUpdateInput = {
 export type TrackedUserCreateManyInput = {
   id?: number
   robloxAccountId: number
-  userId: number
+  robloxUserId: bigint | number
   username?: string | null
   displayName?: string | null
   notifyOnline?: boolean
@@ -431,12 +479,15 @@ export type TrackedUserCreateManyInput = {
   notifyGame?: boolean
   lastPresence?: number | null
   lastGameId?: string | null
+  lastGameName?: string | null
+  lastSeenAt?: Date | string | null
+  lastNotifiedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type TrackedUserUpdateManyMutationInput = {
-  userId?: Prisma.IntFieldUpdateOperationsInput | number
+  robloxUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notifyOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -444,6 +495,9 @@ export type TrackedUserUpdateManyMutationInput = {
   notifyGame?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastPresence?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   lastGameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastGameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -451,7 +505,7 @@ export type TrackedUserUpdateManyMutationInput = {
 export type TrackedUserUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   robloxAccountId?: Prisma.IntFieldUpdateOperationsInput | number
-  userId?: Prisma.IntFieldUpdateOperationsInput | number
+  robloxUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notifyOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -459,6 +513,9 @@ export type TrackedUserUncheckedUpdateManyInput = {
   notifyGame?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastPresence?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   lastGameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastGameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -479,15 +536,15 @@ export type TrackedUserOrderByRelevanceInput = {
   search: string
 }
 
-export type TrackedUserRobloxAccountIdUserIdCompoundUniqueInput = {
+export type TrackedUserRobloxAccountIdRobloxUserIdCompoundUniqueInput = {
   robloxAccountId: number
-  userId: number
+  robloxUserId: bigint | number
 }
 
 export type TrackedUserCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   robloxAccountId?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
+  robloxUserId?: Prisma.SortOrder
   username?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   notifyOnline?: Prisma.SortOrder
@@ -495,6 +552,9 @@ export type TrackedUserCountOrderByAggregateInput = {
   notifyGame?: Prisma.SortOrder
   lastPresence?: Prisma.SortOrder
   lastGameId?: Prisma.SortOrder
+  lastGameName?: Prisma.SortOrder
+  lastSeenAt?: Prisma.SortOrder
+  lastNotifiedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -502,14 +562,14 @@ export type TrackedUserCountOrderByAggregateInput = {
 export type TrackedUserAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   robloxAccountId?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
+  robloxUserId?: Prisma.SortOrder
   lastPresence?: Prisma.SortOrder
 }
 
 export type TrackedUserMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   robloxAccountId?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
+  robloxUserId?: Prisma.SortOrder
   username?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   notifyOnline?: Prisma.SortOrder
@@ -517,6 +577,9 @@ export type TrackedUserMaxOrderByAggregateInput = {
   notifyGame?: Prisma.SortOrder
   lastPresence?: Prisma.SortOrder
   lastGameId?: Prisma.SortOrder
+  lastGameName?: Prisma.SortOrder
+  lastSeenAt?: Prisma.SortOrder
+  lastNotifiedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -524,7 +587,7 @@ export type TrackedUserMaxOrderByAggregateInput = {
 export type TrackedUserMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   robloxAccountId?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
+  robloxUserId?: Prisma.SortOrder
   username?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   notifyOnline?: Prisma.SortOrder
@@ -532,6 +595,9 @@ export type TrackedUserMinOrderByAggregateInput = {
   notifyGame?: Prisma.SortOrder
   lastPresence?: Prisma.SortOrder
   lastGameId?: Prisma.SortOrder
+  lastGameName?: Prisma.SortOrder
+  lastSeenAt?: Prisma.SortOrder
+  lastNotifiedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -539,7 +605,7 @@ export type TrackedUserMinOrderByAggregateInput = {
 export type TrackedUserSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   robloxAccountId?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
+  robloxUserId?: Prisma.SortOrder
   lastPresence?: Prisma.SortOrder
 }
 
@@ -586,7 +652,7 @@ export type TrackedUserUncheckedUpdateManyWithoutAccountNestedInput = {
 }
 
 export type TrackedUserCreateWithoutAccountInput = {
-  userId: number
+  robloxUserId: bigint | number
   username?: string | null
   displayName?: string | null
   notifyOnline?: boolean
@@ -594,13 +660,16 @@ export type TrackedUserCreateWithoutAccountInput = {
   notifyGame?: boolean
   lastPresence?: number | null
   lastGameId?: string | null
+  lastGameName?: string | null
+  lastSeenAt?: Date | string | null
+  lastNotifiedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type TrackedUserUncheckedCreateWithoutAccountInput = {
   id?: number
-  userId: number
+  robloxUserId: bigint | number
   username?: string | null
   displayName?: string | null
   notifyOnline?: boolean
@@ -608,6 +677,9 @@ export type TrackedUserUncheckedCreateWithoutAccountInput = {
   notifyGame?: boolean
   lastPresence?: number | null
   lastGameId?: string | null
+  lastGameName?: string | null
+  lastSeenAt?: Date | string | null
+  lastNotifiedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -644,7 +716,7 @@ export type TrackedUserScalarWhereInput = {
   NOT?: Prisma.TrackedUserScalarWhereInput | Prisma.TrackedUserScalarWhereInput[]
   id?: Prisma.IntFilter<"TrackedUser"> | number
   robloxAccountId?: Prisma.IntFilter<"TrackedUser"> | number
-  userId?: Prisma.IntFilter<"TrackedUser"> | number
+  robloxUserId?: Prisma.BigIntFilter<"TrackedUser"> | bigint | number
   username?: Prisma.StringNullableFilter<"TrackedUser"> | string | null
   displayName?: Prisma.StringNullableFilter<"TrackedUser"> | string | null
   notifyOnline?: Prisma.BoolFilter<"TrackedUser"> | boolean
@@ -652,13 +724,16 @@ export type TrackedUserScalarWhereInput = {
   notifyGame?: Prisma.BoolFilter<"TrackedUser"> | boolean
   lastPresence?: Prisma.IntNullableFilter<"TrackedUser"> | number | null
   lastGameId?: Prisma.StringNullableFilter<"TrackedUser"> | string | null
+  lastGameName?: Prisma.StringNullableFilter<"TrackedUser"> | string | null
+  lastSeenAt?: Prisma.DateTimeNullableFilter<"TrackedUser"> | Date | string | null
+  lastNotifiedAt?: Prisma.DateTimeNullableFilter<"TrackedUser"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"TrackedUser"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"TrackedUser"> | Date | string
 }
 
 export type TrackedUserCreateManyAccountInput = {
   id?: number
-  userId: number
+  robloxUserId: bigint | number
   username?: string | null
   displayName?: string | null
   notifyOnline?: boolean
@@ -666,12 +741,15 @@ export type TrackedUserCreateManyAccountInput = {
   notifyGame?: boolean
   lastPresence?: number | null
   lastGameId?: string | null
+  lastGameName?: string | null
+  lastSeenAt?: Date | string | null
+  lastNotifiedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type TrackedUserUpdateWithoutAccountInput = {
-  userId?: Prisma.IntFieldUpdateOperationsInput | number
+  robloxUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notifyOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -679,13 +757,16 @@ export type TrackedUserUpdateWithoutAccountInput = {
   notifyGame?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastPresence?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   lastGameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastGameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type TrackedUserUncheckedUpdateWithoutAccountInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  userId?: Prisma.IntFieldUpdateOperationsInput | number
+  robloxUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notifyOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -693,13 +774,16 @@ export type TrackedUserUncheckedUpdateWithoutAccountInput = {
   notifyGame?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastPresence?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   lastGameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastGameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type TrackedUserUncheckedUpdateManyWithoutAccountInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  userId?: Prisma.IntFieldUpdateOperationsInput | number
+  robloxUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notifyOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -707,6 +791,9 @@ export type TrackedUserUncheckedUpdateManyWithoutAccountInput = {
   notifyGame?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastPresence?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   lastGameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastGameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -716,7 +803,7 @@ export type TrackedUserUncheckedUpdateManyWithoutAccountInput = {
 export type TrackedUserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   robloxAccountId?: boolean
-  userId?: boolean
+  robloxUserId?: boolean
   username?: boolean
   displayName?: boolean
   notifyOnline?: boolean
@@ -724,6 +811,9 @@ export type TrackedUserSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   notifyGame?: boolean
   lastPresence?: boolean
   lastGameId?: boolean
+  lastGameName?: boolean
+  lastSeenAt?: boolean
+  lastNotifiedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   account?: boolean | Prisma.RobloxAccountDefaultArgs<ExtArgs>
@@ -734,7 +824,7 @@ export type TrackedUserSelect<ExtArgs extends runtime.Types.Extensions.InternalA
 export type TrackedUserSelectScalar = {
   id?: boolean
   robloxAccountId?: boolean
-  userId?: boolean
+  robloxUserId?: boolean
   username?: boolean
   displayName?: boolean
   notifyOnline?: boolean
@@ -742,11 +832,14 @@ export type TrackedUserSelectScalar = {
   notifyGame?: boolean
   lastPresence?: boolean
   lastGameId?: boolean
+  lastGameName?: boolean
+  lastSeenAt?: boolean
+  lastNotifiedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type TrackedUserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "robloxAccountId" | "userId" | "username" | "displayName" | "notifyOnline" | "notifyOffline" | "notifyGame" | "lastPresence" | "lastGameId" | "createdAt" | "updatedAt", ExtArgs["result"]["trackedUser"]>
+export type TrackedUserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "robloxAccountId" | "robloxUserId" | "username" | "displayName" | "notifyOnline" | "notifyOffline" | "notifyGame" | "lastPresence" | "lastGameId" | "lastGameName" | "lastSeenAt" | "lastNotifiedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["trackedUser"]>
 export type TrackedUserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.RobloxAccountDefaultArgs<ExtArgs>
 }
@@ -759,7 +852,7 @@ export type $TrackedUserPayload<ExtArgs extends runtime.Types.Extensions.Interna
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
     robloxAccountId: number
-    userId: number
+    robloxUserId: bigint
     username: string | null
     displayName: string | null
     notifyOnline: boolean
@@ -767,6 +860,9 @@ export type $TrackedUserPayload<ExtArgs extends runtime.Types.Extensions.Interna
     notifyGame: boolean
     lastPresence: number | null
     lastGameId: string | null
+    lastGameName: string | null
+    lastSeenAt: Date | null
+    lastNotifiedAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["trackedUser"]>
@@ -1141,7 +1237,7 @@ export interface Prisma__TrackedUserClient<T, Null = never, ExtArgs extends runt
 export interface TrackedUserFieldRefs {
   readonly id: Prisma.FieldRef<"TrackedUser", 'Int'>
   readonly robloxAccountId: Prisma.FieldRef<"TrackedUser", 'Int'>
-  readonly userId: Prisma.FieldRef<"TrackedUser", 'Int'>
+  readonly robloxUserId: Prisma.FieldRef<"TrackedUser", 'BigInt'>
   readonly username: Prisma.FieldRef<"TrackedUser", 'String'>
   readonly displayName: Prisma.FieldRef<"TrackedUser", 'String'>
   readonly notifyOnline: Prisma.FieldRef<"TrackedUser", 'Boolean'>
@@ -1149,6 +1245,9 @@ export interface TrackedUserFieldRefs {
   readonly notifyGame: Prisma.FieldRef<"TrackedUser", 'Boolean'>
   readonly lastPresence: Prisma.FieldRef<"TrackedUser", 'Int'>
   readonly lastGameId: Prisma.FieldRef<"TrackedUser", 'String'>
+  readonly lastGameName: Prisma.FieldRef<"TrackedUser", 'String'>
+  readonly lastSeenAt: Prisma.FieldRef<"TrackedUser", 'DateTime'>
+  readonly lastNotifiedAt: Prisma.FieldRef<"TrackedUser", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"TrackedUser", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"TrackedUser", 'DateTime'>
 }

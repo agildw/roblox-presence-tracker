@@ -36,14 +36,14 @@ export type FriendAvgAggregateOutputType = {
 export type FriendSumAggregateOutputType = {
   id: number | null
   robloxAccountId: number | null
-  friendUserId: number | null
+  friendUserId: bigint | null
   lastPresence: number | null
 }
 
 export type FriendMinAggregateOutputType = {
   id: number | null
   robloxAccountId: number | null
-  friendUserId: number | null
+  friendUserId: bigint | null
   username: string | null
   displayName: string | null
   notifyOnline: boolean | null
@@ -51,8 +51,10 @@ export type FriendMinAggregateOutputType = {
   notifyGame: boolean | null
   lastPresence: number | null
   lastGameId: string | null
+  lastGameName: string | null
   lastLocation: string | null
   lastSeenAt: Date | null
+  lastNotifiedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -60,7 +62,7 @@ export type FriendMinAggregateOutputType = {
 export type FriendMaxAggregateOutputType = {
   id: number | null
   robloxAccountId: number | null
-  friendUserId: number | null
+  friendUserId: bigint | null
   username: string | null
   displayName: string | null
   notifyOnline: boolean | null
@@ -68,8 +70,10 @@ export type FriendMaxAggregateOutputType = {
   notifyGame: boolean | null
   lastPresence: number | null
   lastGameId: string | null
+  lastGameName: string | null
   lastLocation: string | null
   lastSeenAt: Date | null
+  lastNotifiedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -85,8 +89,10 @@ export type FriendCountAggregateOutputType = {
   notifyGame: number
   lastPresence: number
   lastGameId: number
+  lastGameName: number
   lastLocation: number
   lastSeenAt: number
+  lastNotifiedAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -118,8 +124,10 @@ export type FriendMinAggregateInputType = {
   notifyGame?: true
   lastPresence?: true
   lastGameId?: true
+  lastGameName?: true
   lastLocation?: true
   lastSeenAt?: true
+  lastNotifiedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -135,8 +143,10 @@ export type FriendMaxAggregateInputType = {
   notifyGame?: true
   lastPresence?: true
   lastGameId?: true
+  lastGameName?: true
   lastLocation?: true
   lastSeenAt?: true
+  lastNotifiedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -152,8 +162,10 @@ export type FriendCountAggregateInputType = {
   notifyGame?: true
   lastPresence?: true
   lastGameId?: true
+  lastGameName?: true
   lastLocation?: true
   lastSeenAt?: true
+  lastNotifiedAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -248,7 +260,7 @@ export type FriendGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalA
 export type FriendGroupByOutputType = {
   id: number
   robloxAccountId: number
-  friendUserId: number
+  friendUserId: bigint
   username: string
   displayName: string
   notifyOnline: boolean
@@ -256,8 +268,10 @@ export type FriendGroupByOutputType = {
   notifyGame: boolean
   lastPresence: number | null
   lastGameId: string | null
+  lastGameName: string | null
   lastLocation: string | null
   lastSeenAt: Date | null
+  lastNotifiedAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: FriendCountAggregateOutputType | null
@@ -288,7 +302,7 @@ export type FriendWhereInput = {
   NOT?: Prisma.FriendWhereInput | Prisma.FriendWhereInput[]
   id?: Prisma.IntFilter<"Friend"> | number
   robloxAccountId?: Prisma.IntFilter<"Friend"> | number
-  friendUserId?: Prisma.IntFilter<"Friend"> | number
+  friendUserId?: Prisma.BigIntFilter<"Friend"> | bigint | number
   username?: Prisma.StringFilter<"Friend"> | string
   displayName?: Prisma.StringFilter<"Friend"> | string
   notifyOnline?: Prisma.BoolFilter<"Friend"> | boolean
@@ -296,8 +310,10 @@ export type FriendWhereInput = {
   notifyGame?: Prisma.BoolFilter<"Friend"> | boolean
   lastPresence?: Prisma.IntNullableFilter<"Friend"> | number | null
   lastGameId?: Prisma.StringNullableFilter<"Friend"> | string | null
+  lastGameName?: Prisma.StringNullableFilter<"Friend"> | string | null
   lastLocation?: Prisma.StringNullableFilter<"Friend"> | string | null
   lastSeenAt?: Prisma.DateTimeNullableFilter<"Friend"> | Date | string | null
+  lastNotifiedAt?: Prisma.DateTimeNullableFilter<"Friend"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Friend"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Friend"> | Date | string
   account?: Prisma.XOR<Prisma.RobloxAccountScalarRelationFilter, Prisma.RobloxAccountWhereInput>
@@ -314,8 +330,10 @@ export type FriendOrderByWithRelationInput = {
   notifyGame?: Prisma.SortOrder
   lastPresence?: Prisma.SortOrderInput | Prisma.SortOrder
   lastGameId?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastGameName?: Prisma.SortOrderInput | Prisma.SortOrder
   lastLocation?: Prisma.SortOrderInput | Prisma.SortOrder
   lastSeenAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastNotifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   account?: Prisma.RobloxAccountOrderByWithRelationInput
@@ -329,7 +347,7 @@ export type FriendWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.FriendWhereInput[]
   NOT?: Prisma.FriendWhereInput | Prisma.FriendWhereInput[]
   robloxAccountId?: Prisma.IntFilter<"Friend"> | number
-  friendUserId?: Prisma.IntFilter<"Friend"> | number
+  friendUserId?: Prisma.BigIntFilter<"Friend"> | bigint | number
   username?: Prisma.StringFilter<"Friend"> | string
   displayName?: Prisma.StringFilter<"Friend"> | string
   notifyOnline?: Prisma.BoolFilter<"Friend"> | boolean
@@ -337,8 +355,10 @@ export type FriendWhereUniqueInput = Prisma.AtLeast<{
   notifyGame?: Prisma.BoolFilter<"Friend"> | boolean
   lastPresence?: Prisma.IntNullableFilter<"Friend"> | number | null
   lastGameId?: Prisma.StringNullableFilter<"Friend"> | string | null
+  lastGameName?: Prisma.StringNullableFilter<"Friend"> | string | null
   lastLocation?: Prisma.StringNullableFilter<"Friend"> | string | null
   lastSeenAt?: Prisma.DateTimeNullableFilter<"Friend"> | Date | string | null
+  lastNotifiedAt?: Prisma.DateTimeNullableFilter<"Friend"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Friend"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Friend"> | Date | string
   account?: Prisma.XOR<Prisma.RobloxAccountScalarRelationFilter, Prisma.RobloxAccountWhereInput>
@@ -355,8 +375,10 @@ export type FriendOrderByWithAggregationInput = {
   notifyGame?: Prisma.SortOrder
   lastPresence?: Prisma.SortOrderInput | Prisma.SortOrder
   lastGameId?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastGameName?: Prisma.SortOrderInput | Prisma.SortOrder
   lastLocation?: Prisma.SortOrderInput | Prisma.SortOrder
   lastSeenAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastNotifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.FriendCountOrderByAggregateInput
@@ -372,7 +394,7 @@ export type FriendScalarWhereWithAggregatesInput = {
   NOT?: Prisma.FriendScalarWhereWithAggregatesInput | Prisma.FriendScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"Friend"> | number
   robloxAccountId?: Prisma.IntWithAggregatesFilter<"Friend"> | number
-  friendUserId?: Prisma.IntWithAggregatesFilter<"Friend"> | number
+  friendUserId?: Prisma.BigIntWithAggregatesFilter<"Friend"> | bigint | number
   username?: Prisma.StringWithAggregatesFilter<"Friend"> | string
   displayName?: Prisma.StringWithAggregatesFilter<"Friend"> | string
   notifyOnline?: Prisma.BoolWithAggregatesFilter<"Friend"> | boolean
@@ -380,14 +402,16 @@ export type FriendScalarWhereWithAggregatesInput = {
   notifyGame?: Prisma.BoolWithAggregatesFilter<"Friend"> | boolean
   lastPresence?: Prisma.IntNullableWithAggregatesFilter<"Friend"> | number | null
   lastGameId?: Prisma.StringNullableWithAggregatesFilter<"Friend"> | string | null
+  lastGameName?: Prisma.StringNullableWithAggregatesFilter<"Friend"> | string | null
   lastLocation?: Prisma.StringNullableWithAggregatesFilter<"Friend"> | string | null
   lastSeenAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Friend"> | Date | string | null
+  lastNotifiedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Friend"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Friend"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Friend"> | Date | string
 }
 
 export type FriendCreateInput = {
-  friendUserId: number
+  friendUserId: bigint | number
   username: string
   displayName: string
   notifyOnline?: boolean
@@ -395,8 +419,10 @@ export type FriendCreateInput = {
   notifyGame?: boolean
   lastPresence?: number | null
   lastGameId?: string | null
+  lastGameName?: string | null
   lastLocation?: string | null
   lastSeenAt?: Date | string | null
+  lastNotifiedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   account: Prisma.RobloxAccountCreateNestedOneWithoutFriendsInput
@@ -405,7 +431,7 @@ export type FriendCreateInput = {
 export type FriendUncheckedCreateInput = {
   id?: number
   robloxAccountId: number
-  friendUserId: number
+  friendUserId: bigint | number
   username: string
   displayName: string
   notifyOnline?: boolean
@@ -413,14 +439,16 @@ export type FriendUncheckedCreateInput = {
   notifyGame?: boolean
   lastPresence?: number | null
   lastGameId?: string | null
+  lastGameName?: string | null
   lastLocation?: string | null
   lastSeenAt?: Date | string | null
+  lastNotifiedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type FriendUpdateInput = {
-  friendUserId?: Prisma.IntFieldUpdateOperationsInput | number
+  friendUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   notifyOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -428,8 +456,10 @@ export type FriendUpdateInput = {
   notifyGame?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastPresence?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   lastGameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastGameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.RobloxAccountUpdateOneRequiredWithoutFriendsNestedInput
@@ -438,7 +468,7 @@ export type FriendUpdateInput = {
 export type FriendUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   robloxAccountId?: Prisma.IntFieldUpdateOperationsInput | number
-  friendUserId?: Prisma.IntFieldUpdateOperationsInput | number
+  friendUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   notifyOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -446,8 +476,10 @@ export type FriendUncheckedUpdateInput = {
   notifyGame?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastPresence?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   lastGameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastGameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -455,7 +487,7 @@ export type FriendUncheckedUpdateInput = {
 export type FriendCreateManyInput = {
   id?: number
   robloxAccountId: number
-  friendUserId: number
+  friendUserId: bigint | number
   username: string
   displayName: string
   notifyOnline?: boolean
@@ -463,14 +495,16 @@ export type FriendCreateManyInput = {
   notifyGame?: boolean
   lastPresence?: number | null
   lastGameId?: string | null
+  lastGameName?: string | null
   lastLocation?: string | null
   lastSeenAt?: Date | string | null
+  lastNotifiedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type FriendUpdateManyMutationInput = {
-  friendUserId?: Prisma.IntFieldUpdateOperationsInput | number
+  friendUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   notifyOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -478,8 +512,10 @@ export type FriendUpdateManyMutationInput = {
   notifyGame?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastPresence?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   lastGameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastGameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -487,7 +523,7 @@ export type FriendUpdateManyMutationInput = {
 export type FriendUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   robloxAccountId?: Prisma.IntFieldUpdateOperationsInput | number
-  friendUserId?: Prisma.IntFieldUpdateOperationsInput | number
+  friendUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   notifyOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -495,8 +531,10 @@ export type FriendUncheckedUpdateManyInput = {
   notifyGame?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastPresence?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   lastGameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastGameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -519,7 +557,7 @@ export type FriendOrderByRelevanceInput = {
 
 export type FriendRobloxAccountIdFriendUserIdCompoundUniqueInput = {
   robloxAccountId: number
-  friendUserId: number
+  friendUserId: bigint | number
 }
 
 export type FriendCountOrderByAggregateInput = {
@@ -533,8 +571,10 @@ export type FriendCountOrderByAggregateInput = {
   notifyGame?: Prisma.SortOrder
   lastPresence?: Prisma.SortOrder
   lastGameId?: Prisma.SortOrder
+  lastGameName?: Prisma.SortOrder
   lastLocation?: Prisma.SortOrder
   lastSeenAt?: Prisma.SortOrder
+  lastNotifiedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -557,8 +597,10 @@ export type FriendMaxOrderByAggregateInput = {
   notifyGame?: Prisma.SortOrder
   lastPresence?: Prisma.SortOrder
   lastGameId?: Prisma.SortOrder
+  lastGameName?: Prisma.SortOrder
   lastLocation?: Prisma.SortOrder
   lastSeenAt?: Prisma.SortOrder
+  lastNotifiedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -574,8 +616,10 @@ export type FriendMinOrderByAggregateInput = {
   notifyGame?: Prisma.SortOrder
   lastPresence?: Prisma.SortOrder
   lastGameId?: Prisma.SortOrder
+  lastGameName?: Prisma.SortOrder
   lastLocation?: Prisma.SortOrder
   lastSeenAt?: Prisma.SortOrder
+  lastNotifiedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -646,7 +690,7 @@ export type NullableDateTimeFieldUpdateOperationsInput = {
 }
 
 export type FriendCreateWithoutAccountInput = {
-  friendUserId: number
+  friendUserId: bigint | number
   username: string
   displayName: string
   notifyOnline?: boolean
@@ -654,15 +698,17 @@ export type FriendCreateWithoutAccountInput = {
   notifyGame?: boolean
   lastPresence?: number | null
   lastGameId?: string | null
+  lastGameName?: string | null
   lastLocation?: string | null
   lastSeenAt?: Date | string | null
+  lastNotifiedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type FriendUncheckedCreateWithoutAccountInput = {
   id?: number
-  friendUserId: number
+  friendUserId: bigint | number
   username: string
   displayName: string
   notifyOnline?: boolean
@@ -670,8 +716,10 @@ export type FriendUncheckedCreateWithoutAccountInput = {
   notifyGame?: boolean
   lastPresence?: number | null
   lastGameId?: string | null
+  lastGameName?: string | null
   lastLocation?: string | null
   lastSeenAt?: Date | string | null
+  lastNotifiedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -708,7 +756,7 @@ export type FriendScalarWhereInput = {
   NOT?: Prisma.FriendScalarWhereInput | Prisma.FriendScalarWhereInput[]
   id?: Prisma.IntFilter<"Friend"> | number
   robloxAccountId?: Prisma.IntFilter<"Friend"> | number
-  friendUserId?: Prisma.IntFilter<"Friend"> | number
+  friendUserId?: Prisma.BigIntFilter<"Friend"> | bigint | number
   username?: Prisma.StringFilter<"Friend"> | string
   displayName?: Prisma.StringFilter<"Friend"> | string
   notifyOnline?: Prisma.BoolFilter<"Friend"> | boolean
@@ -716,15 +764,17 @@ export type FriendScalarWhereInput = {
   notifyGame?: Prisma.BoolFilter<"Friend"> | boolean
   lastPresence?: Prisma.IntNullableFilter<"Friend"> | number | null
   lastGameId?: Prisma.StringNullableFilter<"Friend"> | string | null
+  lastGameName?: Prisma.StringNullableFilter<"Friend"> | string | null
   lastLocation?: Prisma.StringNullableFilter<"Friend"> | string | null
   lastSeenAt?: Prisma.DateTimeNullableFilter<"Friend"> | Date | string | null
+  lastNotifiedAt?: Prisma.DateTimeNullableFilter<"Friend"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Friend"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Friend"> | Date | string
 }
 
 export type FriendCreateManyAccountInput = {
   id?: number
-  friendUserId: number
+  friendUserId: bigint | number
   username: string
   displayName: string
   notifyOnline?: boolean
@@ -732,14 +782,16 @@ export type FriendCreateManyAccountInput = {
   notifyGame?: boolean
   lastPresence?: number | null
   lastGameId?: string | null
+  lastGameName?: string | null
   lastLocation?: string | null
   lastSeenAt?: Date | string | null
+  lastNotifiedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type FriendUpdateWithoutAccountInput = {
-  friendUserId?: Prisma.IntFieldUpdateOperationsInput | number
+  friendUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   notifyOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -747,15 +799,17 @@ export type FriendUpdateWithoutAccountInput = {
   notifyGame?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastPresence?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   lastGameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastGameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type FriendUncheckedUpdateWithoutAccountInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  friendUserId?: Prisma.IntFieldUpdateOperationsInput | number
+  friendUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   notifyOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -763,15 +817,17 @@ export type FriendUncheckedUpdateWithoutAccountInput = {
   notifyGame?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastPresence?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   lastGameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastGameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type FriendUncheckedUpdateManyWithoutAccountInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  friendUserId?: Prisma.IntFieldUpdateOperationsInput | number
+  friendUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   notifyOnline?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -779,8 +835,10 @@ export type FriendUncheckedUpdateManyWithoutAccountInput = {
   notifyGame?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastPresence?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   lastGameId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastGameName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -798,8 +856,10 @@ export type FriendSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   notifyGame?: boolean
   lastPresence?: boolean
   lastGameId?: boolean
+  lastGameName?: boolean
   lastLocation?: boolean
   lastSeenAt?: boolean
+  lastNotifiedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   account?: boolean | Prisma.RobloxAccountDefaultArgs<ExtArgs>
@@ -818,13 +878,15 @@ export type FriendSelectScalar = {
   notifyGame?: boolean
   lastPresence?: boolean
   lastGameId?: boolean
+  lastGameName?: boolean
   lastLocation?: boolean
   lastSeenAt?: boolean
+  lastNotifiedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type FriendOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "robloxAccountId" | "friendUserId" | "username" | "displayName" | "notifyOnline" | "notifyOffline" | "notifyGame" | "lastPresence" | "lastGameId" | "lastLocation" | "lastSeenAt" | "createdAt" | "updatedAt", ExtArgs["result"]["friend"]>
+export type FriendOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "robloxAccountId" | "friendUserId" | "username" | "displayName" | "notifyOnline" | "notifyOffline" | "notifyGame" | "lastPresence" | "lastGameId" | "lastGameName" | "lastLocation" | "lastSeenAt" | "lastNotifiedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["friend"]>
 export type FriendInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.RobloxAccountDefaultArgs<ExtArgs>
 }
@@ -837,7 +899,7 @@ export type $FriendPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
     robloxAccountId: number
-    friendUserId: number
+    friendUserId: bigint
     username: string
     displayName: string
     notifyOnline: boolean
@@ -845,8 +907,10 @@ export type $FriendPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     notifyGame: boolean
     lastPresence: number | null
     lastGameId: string | null
+    lastGameName: string | null
     lastLocation: string | null
     lastSeenAt: Date | null
+    lastNotifiedAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["friend"]>
@@ -1221,7 +1285,7 @@ export interface Prisma__FriendClient<T, Null = never, ExtArgs extends runtime.T
 export interface FriendFieldRefs {
   readonly id: Prisma.FieldRef<"Friend", 'Int'>
   readonly robloxAccountId: Prisma.FieldRef<"Friend", 'Int'>
-  readonly friendUserId: Prisma.FieldRef<"Friend", 'Int'>
+  readonly friendUserId: Prisma.FieldRef<"Friend", 'BigInt'>
   readonly username: Prisma.FieldRef<"Friend", 'String'>
   readonly displayName: Prisma.FieldRef<"Friend", 'String'>
   readonly notifyOnline: Prisma.FieldRef<"Friend", 'Boolean'>
@@ -1229,8 +1293,10 @@ export interface FriendFieldRefs {
   readonly notifyGame: Prisma.FieldRef<"Friend", 'Boolean'>
   readonly lastPresence: Prisma.FieldRef<"Friend", 'Int'>
   readonly lastGameId: Prisma.FieldRef<"Friend", 'String'>
+  readonly lastGameName: Prisma.FieldRef<"Friend", 'String'>
   readonly lastLocation: Prisma.FieldRef<"Friend", 'String'>
   readonly lastSeenAt: Prisma.FieldRef<"Friend", 'DateTime'>
+  readonly lastNotifiedAt: Prisma.FieldRef<"Friend", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Friend", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Friend", 'DateTime'>
 }

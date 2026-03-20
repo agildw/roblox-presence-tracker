@@ -7,107 +7,156 @@ generator client {
   output   = "../src/generated/prisma"
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TelegramUser
+// One Telegram account = one Roblox account (enforced via RobloxAccount.userId unique)
+// ─────────────────────────────────────────────────────────────────────────────
 model TelegramUser {
-  id          Int      @id @default(autoincrement())
-  telegramId  String   @unique
-  username    String?
-  createdAt   DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  telegramId String   @unique // Telegram user ID (stored as string for safety)
+  username   String? // @username, may be absent
+  firstName  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   robloxAccount RobloxAccount?
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// RobloxAccount
+// Stores the connected Roblox identity for a Telegram user.
+// The .ROBLOSECURITY cookie MUST be stored encrypted (AES-256).
+// ─────────────────────────────────────────────────────────────────────────────
 model RobloxAccount {
-  id              Int      @id @default(autoincrement())
-  userId          Int      @unique
+  id     Int @id @default(autoincrement())
+  userId Int @unique // FK → TelegramUser
 
-  robloxUserId    Int
-  username        String
-  displayName     String
+  robloxUserId BigInt @unique // Roblox user ID (can be large)
+  username     String
+  displayName  String
 
-  // 🔐 IMPORTANT: store encrypted
-  roblosecurity   String   @db.Text
+  // 🔐 Encrypted .ROBLOSECURITY cookie (AES-256-GCM, base64 encoded)
+  roblosecurity String @db.Text
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user            TelegramUser @relation(fields: [userId], references: [id])
-  friends         Friend[]
-  gameSessions    GameSession[]
-  trackedUsers    TrackedUser[]
+  user         TelegramUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  friends      Friend[]
+  trackedUsers TrackedUser[]
+  gameSessions GameSession[]
+
+  @@index([robloxUserId])
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Friend
+// Real Roblox friends pulled from the API. Separate from TrackedUser.
+// Presence state is cached here to detect changes without an extra DB round-trip.
+// ─────────────────────────────────────────────────────────────────────────────
 model Friend {
-  id              Int      @id @default(autoincrement())
+  id              Int @id @default(autoincrement())
   robloxAccountId Int
 
-  friendUserId    Int
-  username        String
-  displayName     String
+  friendUserId BigInt // Roblox user ID of the friend
+  username     String
+  displayName  String
 
-  // 🔔 Notification settings
-  notifyOnline    Boolean  @default(false)
-  notifyOffline   Boolean  @default(false)
-  notifyGame      Boolean  @default(false)
+  // 🔔 Notification toggles (all OFF by default — user must opt-in)
+  notifyOnline  Boolean @default(false)
+  notifyOffline Boolean @default(false)
+  notifyGame    Boolean @default(false)
 
-  // ⚡ Presence cache
-  lastPresence    Int?
-  lastGameId      String?
-  lastLocation    String?
-  lastSeenAt      DateTime?
+  // ⚡ Presence cache (updated on every poll cycle)
+  lastPresence Int? // 0=offline, 1=website, 2=ingame, 3=studio
+  lastGameId   String? // universeId as string
+  lastGameName String?
+  lastLocation String?
+  lastSeenAt   DateTime?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  // 🛑 Debounce — prevent notification spam
+  lastNotifiedAt DateTime?
 
-  account         RobloxAccount @relation(fields: [robloxAccountId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  account RobloxAccount @relation(fields: [robloxAccountId], references: [id], onDelete: Cascade)
 
   @@unique([robloxAccountId, friendUserId])
   @@index([friendUserId])
+  @@index([robloxAccountId, lastPresence]) // fast filter for "who is online?"
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TrackedUser
+// Manually tracked users (do NOT mix with Friend).
+// Can be any Roblox user — not necessarily a friend.
+// ─────────────────────────────────────────────────────────────────────────────
 model TrackedUser {
-  id              Int      @id @default(autoincrement())
+  id              Int @id @default(autoincrement())
   robloxAccountId Int
 
-  userId          Int
-  username        String?
-  displayName     String?
+  robloxUserId BigInt // Roblox user ID
+  username     String?
+  displayName  String?
 
-  // notif settings
-  notifyOnline    Boolean  @default(true)
-  notifyOffline   Boolean  @default(false)
-  notifyGame      Boolean  @default(true)
+  // 🔔 Notification toggles (online/game ON by default for tracked users)
+  notifyOnline  Boolean @default(true)
+  notifyOffline Boolean @default(false)
+  notifyGame    Boolean @default(true)
 
-  // presence cache
-  lastPresence    Int?
-  lastGameId      String?
+  // ⚡ Presence cache
+  lastPresence Int?
+  lastGameId   String?
+  lastGameName String?
+  lastSeenAt   DateTime?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  // 🛑 Debounce
+  lastNotifiedAt DateTime?
 
-  account         RobloxAccount @relation(fields: [robloxAccountId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@unique([robloxAccountId, userId])
+  account RobloxAccount @relation(fields: [robloxAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([robloxAccountId, robloxUserId])
+  @@index([robloxUserId])
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GameSession
+// Records lifecycle events ONLY (start/end/change). NOT polling data.
+// subjectType differentiates between a Friend session and a TrackedUser session.
+// ─────────────────────────────────────────────────────────────────────────────
 model GameSession {
-  id              Int      @id @default(autoincrement())
+  id              Int @id @default(autoincrement())
   robloxAccountId Int
 
-  friendUserId    Int
+  // Who is being tracked
+  subjectId   BigInt // Roblox user ID of the person playing
+  subjectType SessionSubjectType // FRIEND | TRACKED
 
-  placeId         Int
-  gameId          String?
+  // Game info
+  placeId    BigInt // Roblox place ID (can exceed 32-bit int)
+  universeId BigInt? // Roblox universe ID
+  serverId   String? // UUID for the specific server instance
+  gameName   String?
 
-  gameName        String?
+  // Session lifecycle
+  startTime DateTime
+  endTime   DateTime?
+  duration  Int? // seconds — computed when session ends
 
-  startTime       DateTime
-  endTime         DateTime?
-  duration        Int?     // dalam detik
+  createdAt DateTime @default(now())
 
-  createdAt       DateTime @default(now())
+  account RobloxAccount @relation(fields: [robloxAccountId], references: [id], onDelete: Cascade)
 
-  account         RobloxAccount @relation(fields: [robloxAccountId], references: [id])
+  @@index([subjectId])
+  @@index([robloxAccountId, startTime]) // analytics: sessions by account over time
+  @@index([robloxAccountId, subjectId]) // analytics: sessions per subject
+}
 
-  @@index([friendUserId])
-  @@index([startTime])
+enum SessionSubjectType {
+  FRIEND
+  TRACKED
 }

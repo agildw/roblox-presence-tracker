@@ -1,5 +1,7 @@
 import { createBot } from './bot/index.js';
 import { prisma } from './lib/prisma.js';
+import { startPresenceWorker, stopPresenceWorker } from './workers/presence.worker.js';
+import { startSyncWorker, stopSyncWorker } from './workers/sync.worker.js';
 
 async function main(): Promise<void> {
   console.log('[App] Starting Roblox Tracker Bot...');
@@ -10,9 +12,21 @@ async function main(): Promise<void> {
 
   const bot = createBot();
 
+  // Start background workers
+  startPresenceWorker();
+  startSyncWorker();
+
   // Graceful shutdown
-  process.once('SIGINT', () => void bot.stop());
-  process.once('SIGTERM', () => void bot.stop());
+  process.once('SIGINT', () => {
+    stopPresenceWorker();
+    stopSyncWorker();
+    void bot.stop();
+  });
+  process.once('SIGTERM', () => {
+    stopPresenceWorker();
+    stopSyncWorker();
+    void bot.stop();
+  });
 
   // Start long polling
   await bot.start({
