@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    // File layout
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    // Node.js ESM
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "types": ["node"],
+
+    // Output
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    // Strict checks
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}

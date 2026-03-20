@@ -1,0 +1,113 @@
+datasource db {
+  provider = "mysql"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+model TelegramUser {
+  id          Int      @id @default(autoincrement())
+  telegramId  String   @unique
+  username    String?
+  createdAt   DateTime @default(now())
+
+  robloxAccount RobloxAccount?
+}
+
+model RobloxAccount {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+
+  robloxUserId    Int
+  username        String
+  displayName     String
+
+  // 🔐 IMPORTANT: store encrypted
+  roblosecurity   String   @db.Text
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            TelegramUser @relation(fields: [userId], references: [id])
+  friends         Friend[]
+  gameSessions    GameSession[]
+  trackedUsers    TrackedUser[]
+}
+
+model Friend {
+  id              Int      @id @default(autoincrement())
+  robloxAccountId Int
+
+  friendUserId    Int
+  username        String
+  displayName     String
+
+  // 🔔 Notification settings
+  notifyOnline    Boolean  @default(false)
+  notifyOffline   Boolean  @default(false)
+  notifyGame      Boolean  @default(false)
+
+  // ⚡ Presence cache
+  lastPresence    Int?
+  lastGameId      String?
+  lastLocation    String?
+  lastSeenAt      DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  account         RobloxAccount @relation(fields: [robloxAccountId], references: [id])
+
+  @@unique([robloxAccountId, friendUserId])
+  @@index([friendUserId])
+}
+
+model TrackedUser {
+  id              Int      @id @default(autoincrement())
+  robloxAccountId Int
+
+  userId          Int
+  username        String?
+  displayName     String?
+
+  // notif settings
+  notifyOnline    Boolean  @default(true)
+  notifyOffline   Boolean  @default(false)
+  notifyGame      Boolean  @default(true)
+
+  // presence cache
+  lastPresence    Int?
+  lastGameId      String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  account         RobloxAccount @relation(fields: [robloxAccountId], references: [id])
+
+  @@unique([robloxAccountId, userId])
+}
+
+model GameSession {
+  id              Int      @id @default(autoincrement())
+  robloxAccountId Int
+
+  friendUserId    Int
+
+  placeId         Int
+  gameId          String?
+
+  gameName        String?
+
+  startTime       DateTime
+  endTime         DateTime?
+  duration        Int?     // dalam detik
+
+  createdAt       DateTime @default(now())
+
+  account         RobloxAccount @relation(fields: [robloxAccountId], references: [id])
+
+  @@index([friendUserId])
+  @@index([startTime])
+}
