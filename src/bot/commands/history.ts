@@ -1,6 +1,7 @@
 import type { Bot } from 'grammy';
 import { accountService } from '../../services/account/account.service.js';
 import { analyticsService } from '../../services/analytics/analytics.service.js';
+import { formatWIB } from '../../lib/date.js';
 
 export function registerHistoryCommand(bot: Bot): void {
   bot.command('history', async (ctx) => {
@@ -46,7 +47,7 @@ export function registerHistoryCommand(bot: Bot): void {
       const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));
 
       // format date nicely
-      const dateStr = s.startTime.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const dateStr = formatWIB(s.startTime);
       
       lines.push(`• <b>${escapeHtml(name)}</b> played <b>${escapeHtml(gName)}</b> for ${durationMins} mins <i>(${dateStr})</i>`);
     }
