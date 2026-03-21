@@ -17,6 +17,22 @@ export const analyticsService = {
   },
 
   /**
+   * Get all active website sessions for an account
+   */
+  async getActiveWebsiteSessions(accountId: number) {
+    return prisma.presenceSession.findMany({
+      where: {
+        robloxAccountId: accountId,
+        presenceType: 1, // 1 = Website
+        endTime: null,
+      },
+      orderBy: {
+        startTime: 'desc',
+      },
+    });
+  },
+
+  /**
    * Get recent completed game sessions
    */
   async getRecentSessions(accountId: number, limit = 10, subjectId?: bigint) {
