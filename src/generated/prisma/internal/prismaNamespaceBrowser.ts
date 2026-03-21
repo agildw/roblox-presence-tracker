@@ -55,7 +55,8 @@ export const ModelName = {
   RobloxAccount: 'RobloxAccount',
   Friend: 'Friend',
   TrackedUser: 'TrackedUser',
-  GameSession: 'GameSession'
+  GameSession: 'GameSession',
+  PresenceSession: 'PresenceSession'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -159,6 +160,21 @@ export const GameSessionScalarFieldEnum = {
 } as const
 
 export type GameSessionScalarFieldEnum = (typeof GameSessionScalarFieldEnum)[keyof typeof GameSessionScalarFieldEnum]
+
+
+export const PresenceSessionScalarFieldEnum = {
+  id: 'id',
+  robloxAccountId: 'robloxAccountId',
+  subjectId: 'subjectId',
+  subjectType: 'subjectType',
+  presenceType: 'presenceType',
+  startTime: 'startTime',
+  endTime: 'endTime',
+  duration: 'duration',
+  createdAt: 'createdAt'
+} as const
+
+export type PresenceSessionScalarFieldEnum = (typeof PresenceSessionScalarFieldEnum)[keyof typeof PresenceSessionScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -66,3 +66,8 @@ export type TrackedUser = Prisma.TrackedUserModel
  * 
  */
 export type GameSession = Prisma.GameSessionModel
+/**
+ * Model PresenceSession
+ * 
+ */
+export type PresenceSession = Prisma.PresenceSessionModel

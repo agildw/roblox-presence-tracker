@@ -1,6 +1,7 @@
 import type { Bot } from 'grammy';
 import { accountService } from '../../services/account/account.service.js';
 import { analyticsService } from '../../services/analytics/analytics.service.js';
+import { formatDuration } from '../../lib/date.js';
 
 export function registerStatsCommand(bot: Bot): void {
   bot.command('stats', async (ctx) => {
@@ -48,39 +49,42 @@ export function registerStatsCommand(bot: Bot): void {
     }
 
     const stats = await analyticsService.getPlaytimeStats(account.id, days, subjectId);
+    const pStats = await analyticsService.getPresenceStats(account.id, days, subjectId);
     
-    if (stats.length === 0) {
+    if (stats.length === 0 && pStats.length === 0) {
       const timeStr = days === 'all' ? 'at all' : `in the last ${days} days`;
       const userStr = nameArg ? ` for <b>${nameArg}</b>` : '';
-      await ctx.reply(`📊 No playtime recorded${userStr} ${timeStr}.`, { parse_mode: 'HTML' });
+      await ctx.reply(`📊 No activity recorded${userStr} ${timeStr}.`, { parse_mode: 'HTML' });
       return;
     }
 
     const lines: string[] = [`${titlePrefix} (${rangeLabel})</b>`, ''];
     
-    // show top 15 games
-    const topStats = stats.slice(0, 15);
-    const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));
-
-    for (const stat of topStats) {
-      const durationStr = formatDuration(stat.duration);
-      lines.push(`• <b>${escapeHtml(stat.game)}</b>: ${durationStr}`);
+    if (pStats.length > 0) {
+      lines.push('<b>Presence:</b>');
+      for (const p of pStats) {
+        lines.push(`• ${p.type}: ${formatDuration(p.duration)}`);
+      }
+      lines.push('');
     }
 
-    if (stats.length > 15) {
-      lines.push(`\n<i>...and ${stats.length - 15} more games</i>`);
+    if (stats.length > 0) {
+      lines.push('<b>Games Played:</b>');
+      // show top 15 games
+      const topStats = stats.slice(0, 15);
+      const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));
+
+      for (const stat of topStats) {
+        const durationStr = formatDuration(stat.duration);
+        lines.push(`• <b>${escapeHtml(stat.game)}</b>: ${durationStr}`);
+      }
+
+      if (stats.length > 15) {
+        lines.push(`\n<i>...and ${stats.length - 15} more games</i>`);
+      }
     }
 
     await ctx.reply(lines.join('\n'), { parse_mode: 'HTML' });
   });
-}
-
-function formatDuration(seconds: number): string {
-  if (seconds < 3600) {
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes} minute${minutes === 1 ? '' : 's'}`;
-  }
-  const hours = (seconds / 3600).toFixed(1);
-  return `${hours} hours`;
 }
 

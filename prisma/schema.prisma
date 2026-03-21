@@ -20,6 +20,8 @@ model TelegramUser {
   updatedAt  DateTime @updatedAt
 
   robloxAccount RobloxAccount?
+
+  @@map("TelegramUser")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -45,8 +47,11 @@ model RobloxAccount {
   friends      Friend[]
   trackedUsers TrackedUser[]
   gameSessions GameSession[]
+  presenceSessions PresenceSession[]
 
   @@index([robloxUserId])
+
+  @@map("RobloxAccount")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -85,6 +90,8 @@ model Friend {
   @@unique([robloxAccountId, friendUserId])
   @@index([friendUserId])
   @@index([robloxAccountId, lastPresence]) // fast filter for "who is online?"
+
+  @@map("Friend")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -121,6 +128,8 @@ model TrackedUser {
 
   @@unique([robloxAccountId, robloxUserId])
   @@index([robloxUserId])
+
+  @@map("TrackedUser")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -154,6 +163,31 @@ model GameSession {
   @@index([subjectId])
   @@index([robloxAccountId, startTime]) // analytics: sessions by account over time
   @@index([robloxAccountId, subjectId]) // analytics: sessions per subject
+
+  @@map("GameSession")
+}
+
+model PresenceSession {
+  id              Int @id @default(autoincrement())
+  robloxAccountId Int
+
+  subjectId   BigInt
+  subjectType SessionSubjectType
+
+  presenceType Int // 0=offline,1=website,2=game,3=studio
+
+  startTime DateTime
+  endTime   DateTime?
+  duration  Int?
+
+  createdAt DateTime @default(now())
+
+  account RobloxAccount @relation(fields: [robloxAccountId], references: [id], onDelete: Cascade)
+
+  @@index([subjectId])
+  @@index([robloxAccountId, startTime])
+
+  @@map("PresenceSession")
 }
 
 enum SessionSubjectType {

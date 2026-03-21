@@ -252,6 +252,7 @@ export type RobloxAccountWhereInput = {
   friends?: Prisma.FriendListRelationFilter
   trackedUsers?: Prisma.TrackedUserListRelationFilter
   gameSessions?: Prisma.GameSessionListRelationFilter
+  presenceSessions?: Prisma.PresenceSessionListRelationFilter
 }
 
 export type RobloxAccountOrderByWithRelationInput = {
@@ -267,6 +268,7 @@ export type RobloxAccountOrderByWithRelationInput = {
   friends?: Prisma.FriendOrderByRelationAggregateInput
   trackedUsers?: Prisma.TrackedUserOrderByRelationAggregateInput
   gameSessions?: Prisma.GameSessionOrderByRelationAggregateInput
+  presenceSessions?: Prisma.PresenceSessionOrderByRelationAggregateInput
   _relevance?: Prisma.RobloxAccountOrderByRelevanceInput
 }
 
@@ -286,6 +288,7 @@ export type RobloxAccountWhereUniqueInput = Prisma.AtLeast<{
   friends?: Prisma.FriendListRelationFilter
   trackedUsers?: Prisma.TrackedUserListRelationFilter
   gameSessions?: Prisma.GameSessionListRelationFilter
+  presenceSessions?: Prisma.PresenceSessionListRelationFilter
 }, "id" | "userId" | "robloxUserId">
 
 export type RobloxAccountOrderByWithAggregationInput = {
@@ -329,6 +332,7 @@ export type RobloxAccountCreateInput = {
   friends?: Prisma.FriendCreateNestedManyWithoutAccountInput
   trackedUsers?: Prisma.TrackedUserCreateNestedManyWithoutAccountInput
   gameSessions?: Prisma.GameSessionCreateNestedManyWithoutAccountInput
+  presenceSessions?: Prisma.PresenceSessionCreateNestedManyWithoutAccountInput
 }
 
 export type RobloxAccountUncheckedCreateInput = {
@@ -343,6 +347,7 @@ export type RobloxAccountUncheckedCreateInput = {
   friends?: Prisma.FriendUncheckedCreateNestedManyWithoutAccountInput
   trackedUsers?: Prisma.TrackedUserUncheckedCreateNestedManyWithoutAccountInput
   gameSessions?: Prisma.GameSessionUncheckedCreateNestedManyWithoutAccountInput
+  presenceSessions?: Prisma.PresenceSessionUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type RobloxAccountUpdateInput = {
@@ -356,6 +361,7 @@ export type RobloxAccountUpdateInput = {
   friends?: Prisma.FriendUpdateManyWithoutAccountNestedInput
   trackedUsers?: Prisma.TrackedUserUpdateManyWithoutAccountNestedInput
   gameSessions?: Prisma.GameSessionUpdateManyWithoutAccountNestedInput
+  presenceSessions?: Prisma.PresenceSessionUpdateManyWithoutAccountNestedInput
 }
 
 export type RobloxAccountUncheckedUpdateInput = {
@@ -370,6 +376,7 @@ export type RobloxAccountUncheckedUpdateInput = {
   friends?: Prisma.FriendUncheckedUpdateManyWithoutAccountNestedInput
   trackedUsers?: Prisma.TrackedUserUncheckedUpdateManyWithoutAccountNestedInput
   gameSessions?: Prisma.GameSessionUncheckedUpdateManyWithoutAccountNestedInput
+  presenceSessions?: Prisma.PresenceSessionUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type RobloxAccountCreateManyInput = {
@@ -546,6 +553,20 @@ export type RobloxAccountUpdateOneRequiredWithoutGameSessionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.RobloxAccountUpdateToOneWithWhereWithoutGameSessionsInput, Prisma.RobloxAccountUpdateWithoutGameSessionsInput>, Prisma.RobloxAccountUncheckedUpdateWithoutGameSessionsInput>
 }
 
+export type RobloxAccountCreateNestedOneWithoutPresenceSessionsInput = {
+  create?: Prisma.XOR<Prisma.RobloxAccountCreateWithoutPresenceSessionsInput, Prisma.RobloxAccountUncheckedCreateWithoutPresenceSessionsInput>
+  connectOrCreate?: Prisma.RobloxAccountCreateOrConnectWithoutPresenceSessionsInput
+  connect?: Prisma.RobloxAccountWhereUniqueInput
+}
+
+export type RobloxAccountUpdateOneRequiredWithoutPresenceSessionsNestedInput = {
+  create?: Prisma.XOR<Prisma.RobloxAccountCreateWithoutPresenceSessionsInput, Prisma.RobloxAccountUncheckedCreateWithoutPresenceSessionsInput>
+  connectOrCreate?: Prisma.RobloxAccountCreateOrConnectWithoutPresenceSessionsInput
+  upsert?: Prisma.RobloxAccountUpsertWithoutPresenceSessionsInput
+  connect?: Prisma.RobloxAccountWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.RobloxAccountUpdateToOneWithWhereWithoutPresenceSessionsInput, Prisma.RobloxAccountUpdateWithoutPresenceSessionsInput>, Prisma.RobloxAccountUncheckedUpdateWithoutPresenceSessionsInput>
+}
+
 export type RobloxAccountCreateWithoutUserInput = {
   robloxUserId: bigint | number
   username: string
@@ -556,6 +577,7 @@ export type RobloxAccountCreateWithoutUserInput = {
   friends?: Prisma.FriendCreateNestedManyWithoutAccountInput
   trackedUsers?: Prisma.TrackedUserCreateNestedManyWithoutAccountInput
   gameSessions?: Prisma.GameSessionCreateNestedManyWithoutAccountInput
+  presenceSessions?: Prisma.PresenceSessionCreateNestedManyWithoutAccountInput
 }
 
 export type RobloxAccountUncheckedCreateWithoutUserInput = {
@@ -569,6 +591,7 @@ export type RobloxAccountUncheckedCreateWithoutUserInput = {
   friends?: Prisma.FriendUncheckedCreateNestedManyWithoutAccountInput
   trackedUsers?: Prisma.TrackedUserUncheckedCreateNestedManyWithoutAccountInput
   gameSessions?: Prisma.GameSessionUncheckedCreateNestedManyWithoutAccountInput
+  presenceSessions?: Prisma.PresenceSessionUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type RobloxAccountCreateOrConnectWithoutUserInput = {
@@ -597,6 +620,7 @@ export type RobloxAccountUpdateWithoutUserInput = {
   friends?: Prisma.FriendUpdateManyWithoutAccountNestedInput
   trackedUsers?: Prisma.TrackedUserUpdateManyWithoutAccountNestedInput
   gameSessions?: Prisma.GameSessionUpdateManyWithoutAccountNestedInput
+  presenceSessions?: Prisma.PresenceSessionUpdateManyWithoutAccountNestedInput
 }
 
 export type RobloxAccountUncheckedUpdateWithoutUserInput = {
@@ -610,6 +634,7 @@ export type RobloxAccountUncheckedUpdateWithoutUserInput = {
   friends?: Prisma.FriendUncheckedUpdateManyWithoutAccountNestedInput
   trackedUsers?: Prisma.TrackedUserUncheckedUpdateManyWithoutAccountNestedInput
   gameSessions?: Prisma.GameSessionUncheckedUpdateManyWithoutAccountNestedInput
+  presenceSessions?: Prisma.PresenceSessionUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type RobloxAccountCreateWithoutFriendsInput = {
@@ -622,6 +647,7 @@ export type RobloxAccountCreateWithoutFriendsInput = {
   user: Prisma.TelegramUserCreateNestedOneWithoutRobloxAccountInput
   trackedUsers?: Prisma.TrackedUserCreateNestedManyWithoutAccountInput
   gameSessions?: Prisma.GameSessionCreateNestedManyWithoutAccountInput
+  presenceSessions?: Prisma.PresenceSessionCreateNestedManyWithoutAccountInput
 }
 
 export type RobloxAccountUncheckedCreateWithoutFriendsInput = {
@@ -635,6 +661,7 @@ export type RobloxAccountUncheckedCreateWithoutFriendsInput = {
   updatedAt?: Date | string
   trackedUsers?: Prisma.TrackedUserUncheckedCreateNestedManyWithoutAccountInput
   gameSessions?: Prisma.GameSessionUncheckedCreateNestedManyWithoutAccountInput
+  presenceSessions?: Prisma.PresenceSessionUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type RobloxAccountCreateOrConnectWithoutFriendsInput = {
@@ -663,6 +690,7 @@ export type RobloxAccountUpdateWithoutFriendsInput = {
   user?: Prisma.TelegramUserUpdateOneRequiredWithoutRobloxAccountNestedInput
   trackedUsers?: Prisma.TrackedUserUpdateManyWithoutAccountNestedInput
   gameSessions?: Prisma.GameSessionUpdateManyWithoutAccountNestedInput
+  presenceSessions?: Prisma.PresenceSessionUpdateManyWithoutAccountNestedInput
 }
 
 export type RobloxAccountUncheckedUpdateWithoutFriendsInput = {
@@ -676,6 +704,7 @@ export type RobloxAccountUncheckedUpdateWithoutFriendsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trackedUsers?: Prisma.TrackedUserUncheckedUpdateManyWithoutAccountNestedInput
   gameSessions?: Prisma.GameSessionUncheckedUpdateManyWithoutAccountNestedInput
+  presenceSessions?: Prisma.PresenceSessionUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type RobloxAccountCreateWithoutTrackedUsersInput = {
@@ -688,6 +717,7 @@ export type RobloxAccountCreateWithoutTrackedUsersInput = {
   user: Prisma.TelegramUserCreateNestedOneWithoutRobloxAccountInput
   friends?: Prisma.FriendCreateNestedManyWithoutAccountInput
   gameSessions?: Prisma.GameSessionCreateNestedManyWithoutAccountInput
+  presenceSessions?: Prisma.PresenceSessionCreateNestedManyWithoutAccountInput
 }
 
 export type RobloxAccountUncheckedCreateWithoutTrackedUsersInput = {
@@ -701,6 +731,7 @@ export type RobloxAccountUncheckedCreateWithoutTrackedUsersInput = {
   updatedAt?: Date | string
   friends?: Prisma.FriendUncheckedCreateNestedManyWithoutAccountInput
   gameSessions?: Prisma.GameSessionUncheckedCreateNestedManyWithoutAccountInput
+  presenceSessions?: Prisma.PresenceSessionUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type RobloxAccountCreateOrConnectWithoutTrackedUsersInput = {
@@ -729,6 +760,7 @@ export type RobloxAccountUpdateWithoutTrackedUsersInput = {
   user?: Prisma.TelegramUserUpdateOneRequiredWithoutRobloxAccountNestedInput
   friends?: Prisma.FriendUpdateManyWithoutAccountNestedInput
   gameSessions?: Prisma.GameSessionUpdateManyWithoutAccountNestedInput
+  presenceSessions?: Prisma.PresenceSessionUpdateManyWithoutAccountNestedInput
 }
 
 export type RobloxAccountUncheckedUpdateWithoutTrackedUsersInput = {
@@ -742,6 +774,7 @@ export type RobloxAccountUncheckedUpdateWithoutTrackedUsersInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   friends?: Prisma.FriendUncheckedUpdateManyWithoutAccountNestedInput
   gameSessions?: Prisma.GameSessionUncheckedUpdateManyWithoutAccountNestedInput
+  presenceSessions?: Prisma.PresenceSessionUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type RobloxAccountCreateWithoutGameSessionsInput = {
@@ -754,6 +787,7 @@ export type RobloxAccountCreateWithoutGameSessionsInput = {
   user: Prisma.TelegramUserCreateNestedOneWithoutRobloxAccountInput
   friends?: Prisma.FriendCreateNestedManyWithoutAccountInput
   trackedUsers?: Prisma.TrackedUserCreateNestedManyWithoutAccountInput
+  presenceSessions?: Prisma.PresenceSessionCreateNestedManyWithoutAccountInput
 }
 
 export type RobloxAccountUncheckedCreateWithoutGameSessionsInput = {
@@ -767,6 +801,7 @@ export type RobloxAccountUncheckedCreateWithoutGameSessionsInput = {
   updatedAt?: Date | string
   friends?: Prisma.FriendUncheckedCreateNestedManyWithoutAccountInput
   trackedUsers?: Prisma.TrackedUserUncheckedCreateNestedManyWithoutAccountInput
+  presenceSessions?: Prisma.PresenceSessionUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type RobloxAccountCreateOrConnectWithoutGameSessionsInput = {
@@ -795,6 +830,7 @@ export type RobloxAccountUpdateWithoutGameSessionsInput = {
   user?: Prisma.TelegramUserUpdateOneRequiredWithoutRobloxAccountNestedInput
   friends?: Prisma.FriendUpdateManyWithoutAccountNestedInput
   trackedUsers?: Prisma.TrackedUserUpdateManyWithoutAccountNestedInput
+  presenceSessions?: Prisma.PresenceSessionUpdateManyWithoutAccountNestedInput
 }
 
 export type RobloxAccountUncheckedUpdateWithoutGameSessionsInput = {
@@ -808,6 +844,77 @@ export type RobloxAccountUncheckedUpdateWithoutGameSessionsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   friends?: Prisma.FriendUncheckedUpdateManyWithoutAccountNestedInput
   trackedUsers?: Prisma.TrackedUserUncheckedUpdateManyWithoutAccountNestedInput
+  presenceSessions?: Prisma.PresenceSessionUncheckedUpdateManyWithoutAccountNestedInput
+}
+
+export type RobloxAccountCreateWithoutPresenceSessionsInput = {
+  robloxUserId: bigint | number
+  username: string
+  displayName: string
+  roblosecurity: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.TelegramUserCreateNestedOneWithoutRobloxAccountInput
+  friends?: Prisma.FriendCreateNestedManyWithoutAccountInput
+  trackedUsers?: Prisma.TrackedUserCreateNestedManyWithoutAccountInput
+  gameSessions?: Prisma.GameSessionCreateNestedManyWithoutAccountInput
+}
+
+export type RobloxAccountUncheckedCreateWithoutPresenceSessionsInput = {
+  id?: number
+  userId: number
+  robloxUserId: bigint | number
+  username: string
+  displayName: string
+  roblosecurity: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  friends?: Prisma.FriendUncheckedCreateNestedManyWithoutAccountInput
+  trackedUsers?: Prisma.TrackedUserUncheckedCreateNestedManyWithoutAccountInput
+  gameSessions?: Prisma.GameSessionUncheckedCreateNestedManyWithoutAccountInput
+}
+
+export type RobloxAccountCreateOrConnectWithoutPresenceSessionsInput = {
+  where: Prisma.RobloxAccountWhereUniqueInput
+  create: Prisma.XOR<Prisma.RobloxAccountCreateWithoutPresenceSessionsInput, Prisma.RobloxAccountUncheckedCreateWithoutPresenceSessionsInput>
+}
+
+export type RobloxAccountUpsertWithoutPresenceSessionsInput = {
+  update: Prisma.XOR<Prisma.RobloxAccountUpdateWithoutPresenceSessionsInput, Prisma.RobloxAccountUncheckedUpdateWithoutPresenceSessionsInput>
+  create: Prisma.XOR<Prisma.RobloxAccountCreateWithoutPresenceSessionsInput, Prisma.RobloxAccountUncheckedCreateWithoutPresenceSessionsInput>
+  where?: Prisma.RobloxAccountWhereInput
+}
+
+export type RobloxAccountUpdateToOneWithWhereWithoutPresenceSessionsInput = {
+  where?: Prisma.RobloxAccountWhereInput
+  data: Prisma.XOR<Prisma.RobloxAccountUpdateWithoutPresenceSessionsInput, Prisma.RobloxAccountUncheckedUpdateWithoutPresenceSessionsInput>
+}
+
+export type RobloxAccountUpdateWithoutPresenceSessionsInput = {
+  robloxUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.TelegramUserUpdateOneRequiredWithoutRobloxAccountNestedInput
+  friends?: Prisma.FriendUpdateManyWithoutAccountNestedInput
+  trackedUsers?: Prisma.TrackedUserUpdateManyWithoutAccountNestedInput
+  gameSessions?: Prisma.GameSessionUpdateManyWithoutAccountNestedInput
+}
+
+export type RobloxAccountUncheckedUpdateWithoutPresenceSessionsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  userId?: Prisma.IntFieldUpdateOperationsInput | number
+  robloxUserId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  friends?: Prisma.FriendUncheckedUpdateManyWithoutAccountNestedInput
+  trackedUsers?: Prisma.TrackedUserUncheckedUpdateManyWithoutAccountNestedInput
+  gameSessions?: Prisma.GameSessionUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 
@@ -819,12 +926,14 @@ export type RobloxAccountCountOutputType = {
   friends: number
   trackedUsers: number
   gameSessions: number
+  presenceSessions: number
 }
 
 export type RobloxAccountCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   friends?: boolean | RobloxAccountCountOutputTypeCountFriendsArgs
   trackedUsers?: boolean | RobloxAccountCountOutputTypeCountTrackedUsersArgs
   gameSessions?: boolean | RobloxAccountCountOutputTypeCountGameSessionsArgs
+  presenceSessions?: boolean | RobloxAccountCountOutputTypeCountPresenceSessionsArgs
 }
 
 /**
@@ -858,6 +967,13 @@ export type RobloxAccountCountOutputTypeCountGameSessionsArgs<ExtArgs extends ru
   where?: Prisma.GameSessionWhereInput
 }
 
+/**
+ * RobloxAccountCountOutputType without action
+ */
+export type RobloxAccountCountOutputTypeCountPresenceSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PresenceSessionWhereInput
+}
+
 
 export type RobloxAccountSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -872,6 +988,7 @@ export type RobloxAccountSelect<ExtArgs extends runtime.Types.Extensions.Interna
   friends?: boolean | Prisma.RobloxAccount$friendsArgs<ExtArgs>
   trackedUsers?: boolean | Prisma.RobloxAccount$trackedUsersArgs<ExtArgs>
   gameSessions?: boolean | Prisma.RobloxAccount$gameSessionsArgs<ExtArgs>
+  presenceSessions?: boolean | Prisma.RobloxAccount$presenceSessionsArgs<ExtArgs>
   _count?: boolean | Prisma.RobloxAccountCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["robloxAccount"]>
 
@@ -894,6 +1011,7 @@ export type RobloxAccountInclude<ExtArgs extends runtime.Types.Extensions.Intern
   friends?: boolean | Prisma.RobloxAccount$friendsArgs<ExtArgs>
   trackedUsers?: boolean | Prisma.RobloxAccount$trackedUsersArgs<ExtArgs>
   gameSessions?: boolean | Prisma.RobloxAccount$gameSessionsArgs<ExtArgs>
+  presenceSessions?: boolean | Prisma.RobloxAccount$presenceSessionsArgs<ExtArgs>
   _count?: boolean | Prisma.RobloxAccountCountOutputTypeDefaultArgs<ExtArgs>
 }
 
@@ -904,6 +1022,7 @@ export type $RobloxAccountPayload<ExtArgs extends runtime.Types.Extensions.Inter
     friends: Prisma.$FriendPayload<ExtArgs>[]
     trackedUsers: Prisma.$TrackedUserPayload<ExtArgs>[]
     gameSessions: Prisma.$GameSessionPayload<ExtArgs>[]
+    presenceSessions: Prisma.$PresenceSessionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -1258,6 +1377,7 @@ export interface Prisma__RobloxAccountClient<T, Null = never, ExtArgs extends ru
   friends<T extends Prisma.RobloxAccount$friendsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.RobloxAccount$friendsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FriendPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   trackedUsers<T extends Prisma.RobloxAccount$trackedUsersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.RobloxAccount$trackedUsersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TrackedUserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   gameSessions<T extends Prisma.RobloxAccount$gameSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.RobloxAccount$gameSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$GameSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  presenceSessions<T extends Prisma.RobloxAccount$presenceSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.RobloxAccount$presenceSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PresenceSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1712,6 +1832,30 @@ export type RobloxAccount$gameSessionsArgs<ExtArgs extends runtime.Types.Extensi
   take?: number
   skip?: number
   distinct?: Prisma.GameSessionScalarFieldEnum | Prisma.GameSessionScalarFieldEnum[]
+}
+
+/**
+ * RobloxAccount.presenceSessions
+ */
+export type RobloxAccount$presenceSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PresenceSession
+   */
+  select?: Prisma.PresenceSessionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PresenceSession
+   */
+  omit?: Prisma.PresenceSessionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PresenceSessionInclude<ExtArgs> | null
+  where?: Prisma.PresenceSessionWhereInput
+  orderBy?: Prisma.PresenceSessionOrderByWithRelationInput | Prisma.PresenceSessionOrderByWithRelationInput[]
+  cursor?: Prisma.PresenceSessionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PresenceSessionScalarFieldEnum | Prisma.PresenceSessionScalarFieldEnum[]
 }
 
 /**

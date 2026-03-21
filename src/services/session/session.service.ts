@@ -59,9 +59,6 @@ export const sessionService = {
     }
   },
 
-  /**
-   * Changes the current game directly (close old, start new)
-   */
   async changeGameSession(
     accountId: number,
     subjectId: bigint,
@@ -73,5 +70,55 @@ export const sessionService = {
   ): Promise<void> {
     await this.endGameSession(accountId, subjectId);
     await this.startGameSession(accountId, subjectId, subjectType, placeId, universeId, serverId, gameName);
+  },
+
+  /**
+   * Starts a new presence session
+   */
+  async startPresenceSession(
+    accountId: number,
+    subjectId: bigint,
+    subjectType: 'FRIEND' | 'TRACKED',
+    presenceType: number
+  ): Promise<void> {
+    await this.endPresenceSession(accountId, subjectId);
+    await prisma.presenceSession.create({
+      data: {
+        robloxAccountId: accountId,
+        subjectId,
+        subjectType,
+        presenceType,
+        startTime: new Date(),
+      },
+    });
+  },
+
+  /**
+   * Ends an active presence session and calculates duration
+   */
+  async endPresenceSession(accountId: number, subjectId: bigint): Promise<void> {
+    const activeSession = await prisma.presenceSession.findFirst({
+      where: {
+        robloxAccountId: accountId,
+        subjectId,
+        endTime: null,
+      },
+      orderBy: {
+        startTime: 'desc',
+      },
+    });
+
+    if (activeSession) {
+      const now = new Date();
+      const durationSeconds = Math.floor((now.getTime() - activeSession.startTime.getTime()) / 1000);
+
+      await prisma.presenceSession.update({
+        where: { id: activeSession.id },
+        data: {
+          endTime: now,
+          duration: durationSeconds,
+        },
+      });
+    }
   },
 };

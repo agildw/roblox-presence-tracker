@@ -26,3 +26,15 @@ export function formatWIB(date: Date): string {
 export function nowUTC(): Date {
   return new Date();
 }
+
+/**
+ * Formats seconds into a human-readable duration (e.g., "5 minutes" or "2.5 hours").
+ */
+export function formatDuration(seconds: number): string {
+  if (seconds < 3600) {
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+  }
+  const hours = (seconds / 3600).toFixed(1);
+  return `${hours} hours`;
+}

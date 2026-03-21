@@ -1,7 +1,7 @@
 import type { Bot } from 'grammy';
 import { accountService } from '../../services/account/account.service.js';
 import { analyticsService } from '../../services/analytics/analytics.service.js';
-import { formatWIB } from '../../lib/date.js';
+import { formatWIB, formatDuration } from '../../lib/date.js';
 
 export function registerHistoryCommand(bot: Bot): void {
   bot.command('history', async (ctx) => {
@@ -25,7 +25,27 @@ export function registerHistoryCommand(bot: Bot): void {
         return;
       }
       subjectId = foundId;
-      title = `📜 <b>Recent Sessions for ${nameArg}</b>`;
+      
+      const dailySummary = await analyticsService.getDailyPresenceSummary(account.id, subjectId, 7);
+      
+      if (dailySummary.length === 0) {
+        await ctx.reply(`📭 No activity history found for <b>${nameArg}</b> in the last 7 days.`, { parse_mode: 'HTML' });
+        return;
+      }
+
+      const lines: string[] = [`📜 <b>Activity History for ${nameArg}</b>`, ''];
+      
+      for (const day of dailySummary) {
+        // format date YYYY-MM-DD to something nicer if possible, but ISO part is fine for now
+        lines.push(`<b>📅 ${day.date}</b>`);
+        for (const s of day.stats) {
+          lines.push(`- ${s.type}: ${formatDuration(s.duration)}`);
+        }
+        lines.push('');
+      }
+
+      await ctx.reply(lines.join('\n'), { parse_mode: 'HTML' });
+      return;
     }
 
     const sessions = await analyticsService.getRecentSessions(account.id, 10, subjectId);

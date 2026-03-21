@@ -89,6 +89,10 @@ export const presenceService = {
 
     if (!presenceChanged && !gameChanged) return;
 
+    if (presenceChanged) {
+      void sessionService.startPresenceSession(accountId, subjectId, type, newState.userPresenceType);
+    }
+
     // Trigger events logically
     if (oldState.lastPresence !== 2 && newState.userPresenceType === 2) {
       console.log(`[PresenceService] [${type}] User started playing game: ${newState.gameId}`);

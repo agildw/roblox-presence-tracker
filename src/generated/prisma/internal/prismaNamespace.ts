@@ -388,7 +388,8 @@ export const ModelName = {
   RobloxAccount: 'RobloxAccount',
   Friend: 'Friend',
   TrackedUser: 'TrackedUser',
-  GameSession: 'GameSession'
+  GameSession: 'GameSession',
+  PresenceSession: 'PresenceSession'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -404,7 +405,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "telegramUser" | "robloxAccount" | "friend" | "trackedUser" | "gameSession"
+    modelProps: "telegramUser" | "robloxAccount" | "friend" | "trackedUser" | "gameSession" | "presenceSession"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -738,6 +739,72 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PresenceSession: {
+      payload: Prisma.$PresenceSessionPayload<ExtArgs>
+      fields: Prisma.PresenceSessionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PresenceSessionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PresenceSessionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PresenceSessionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PresenceSessionPayload>
+        }
+        findFirst: {
+          args: Prisma.PresenceSessionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PresenceSessionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PresenceSessionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PresenceSessionPayload>
+        }
+        findMany: {
+          args: Prisma.PresenceSessionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PresenceSessionPayload>[]
+        }
+        create: {
+          args: Prisma.PresenceSessionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PresenceSessionPayload>
+        }
+        createMany: {
+          args: Prisma.PresenceSessionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.PresenceSessionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PresenceSessionPayload>
+        }
+        update: {
+          args: Prisma.PresenceSessionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PresenceSessionPayload>
+        }
+        deleteMany: {
+          args: Prisma.PresenceSessionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PresenceSessionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.PresenceSessionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PresenceSessionPayload>
+        }
+        aggregate: {
+          args: Prisma.PresenceSessionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePresenceSession>
+        }
+        groupBy: {
+          args: Prisma.PresenceSessionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PresenceSessionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PresenceSessionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PresenceSessionCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -862,6 +929,21 @@ export const GameSessionScalarFieldEnum = {
 } as const
 
 export type GameSessionScalarFieldEnum = (typeof GameSessionScalarFieldEnum)[keyof typeof GameSessionScalarFieldEnum]
+
+
+export const PresenceSessionScalarFieldEnum = {
+  id: 'id',
+  robloxAccountId: 'robloxAccountId',
+  subjectId: 'subjectId',
+  subjectType: 'subjectType',
+  presenceType: 'presenceType',
+  startTime: 'startTime',
+  endTime: 'endTime',
+  duration: 'duration',
+  createdAt: 'createdAt'
+} as const
+
+export type PresenceSessionScalarFieldEnum = (typeof PresenceSessionScalarFieldEnum)[keyof typeof PresenceSessionScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1081,6 +1163,7 @@ export type GlobalOmitConfig = {
   friend?: Prisma.FriendOmit
   trackedUser?: Prisma.TrackedUserOmit
   gameSession?: Prisma.GameSessionOmit
+  presenceSession?: Prisma.PresenceSessionOmit
 }
 
 /* Types for Logging */
