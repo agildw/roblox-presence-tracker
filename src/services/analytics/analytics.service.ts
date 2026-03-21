@@ -122,37 +122,31 @@ export const analyticsService = {
   },
 
   /**
-   * Get daily presence summary for a specific subject
+   * Get presence summary for a single date
    */
-  async getDailyPresenceSummary(accountId: number, subjectId: bigint, daysLimit = 7) {
-    const since = new Date();
-    since.setDate(since.getDate() - daysLimit);
-    since.setHours(0, 0, 0, 0);
+  async getPresenceSummaryForDate(accountId: number, subjectId: bigint, targetDate: Date) {
+    const nextDay = new Date(targetDate);
+    nextDay.setDate(nextDay.getDate() + 1);
 
     const sessions = await prisma.presenceSession.findMany({
       where: {
         robloxAccountId: accountId,
         subjectId,
-        startTime: { gte: since },
+        startTime: {
+          gte: targetDate,
+          lt: nextDay,
+        },
         duration: { not: null },
-      },
-      orderBy: {
-        startTime: 'desc',
       },
     });
 
-    // Group by date and type
-    const dailyMap = new Map<string, Map<number, number>>();
+    const stats = new Map<number, number>();
 
-    for (const s of sessions) {
-      if (!s.duration) continue;
-      const dateKey = s.startTime.toISOString().split('T')[0]!;
-      if (!dailyMap.has(dateKey)) {
-        dailyMap.set(dateKey, new Map());
-      }
-      const typeMap = dailyMap.get(dateKey)!;
-      const current = typeMap.get(s.presenceType) || 0;
-      typeMap.set(s.presenceType, current + s.duration);
+    for (const session of sessions) {
+      if (!session.duration) continue;
+      const key = session.presenceType;
+      const current = stats.get(key) || 0;
+      stats.set(key, current + session.duration);
     }
 
     const typeNames: Record<number, string> = {
@@ -162,13 +156,38 @@ export const analyticsService = {
       3: 'Studio',
     };
 
-    return Array.from(dailyMap.entries()).map(([date, typeMap]) => ({
-      date,
-      stats: Array.from(typeMap.entries()).map(([type, duration]) => ({
-        type: typeNames[type] || 'Unknown',
-        duration,
-      })),
-    }));
+    return Array.from(stats.entries())
+      .map(([type, duration]) => ({ type: typeNames[type] || 'Unknown', duration }))
+      .sort((a, b) => b.duration - a.duration);
+  },
+
+  /**
+   * Get completed game sessions for a single date
+   */
+  async getSessionsForDate(accountId: number, targetDate: Date, limit = 10, subjectId?: bigint) {
+    const nextDay = new Date(targetDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+
+    const where: any = {
+      robloxAccountId: accountId,
+      startTime: {
+        gte: targetDate,
+        lt: nextDay,
+      },
+      endTime: { not: null },
+    };
+
+    if (subjectId) {
+      where.subjectId = subjectId;
+    }
+
+    return prisma.gameSession.findMany({
+      where,
+      orderBy: {
+        startTime: 'desc',
+      },
+      take: limit,
+    });
   },
 
   /**
