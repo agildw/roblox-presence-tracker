@@ -35,7 +35,7 @@ export const analyticsService = {
   /**
    * Get recent completed game sessions
    */
-  async getRecentSessions(accountId: number, limit = 10, subjectId?: bigint) {
+  async getRecentSessions(accountId: number, limit = 10, subjectId?: bigint, offset = 0) {
     const where: any = {
       robloxAccountId: accountId,
       endTime: { not: null },
@@ -48,9 +48,10 @@ export const analyticsService = {
     return prisma.gameSession.findMany({
       where,
       orderBy: {
-        endTime: 'desc',
+        startTime: 'desc',
       },
       take: limit,
+      skip: offset,
     });
   },
 

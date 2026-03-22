@@ -79,6 +79,73 @@ function buildKeyboard(targetDate: Date, nameArg?: string): InlineKeyboard {
     .text('Next »', `hist:${nextStr}:${safeName}`);
 }
 
+async function buildAllHistoryMessage(accountId: number, nameArg: string | undefined, page: number) {
+  let subjectId: bigint | undefined;
+  let title = `📜 <b>All-Time Game Sessions</b>`;
+
+  if (nameArg) {
+    const foundId = await analyticsService.getSubjectByName(accountId, nameArg);
+    if (!foundId) {
+      return { text: `🔍 User "<code>${nameArg}</code>" not found in your tracked friends or users.`, keyboard: null };
+    }
+    subjectId = foundId;
+    title = `📜 <b>All-Time Activity for ${nameArg}</b>`;
+  }
+
+  const limit = 15;
+  const offset = page * limit;
+  const sessions = await analyticsService.getRecentSessions(accountId, limit, subjectId, offset);
+  
+  let pStats: { type: string; duration: number }[] = [];
+  if (subjectId) {
+    pStats = await analyticsService.getPresenceStats(accountId, 'all', subjectId);
+  }
+
+  if (sessions.length === 0 && pStats.length === 0) {
+    const emptyText = `📭 No activity history found for ${nameArg ? `<b>${nameArg}</b>` : 'anyone'}.`;
+    return { text: emptyText, keyboard: null };
+  }
+
+  const lines: string[] = [title, ''];
+  
+  // Only show presence summary on page 0
+  if (page === 0 && pStats.length > 0) {
+    lines.push('<b>All-Time Presence:</b>');
+    for (const s of pStats) {
+      lines.push(`- ${s.type}: ${formatDuration(s.duration)}`);
+    }
+    lines.push('');
+  }
+
+  if (sessions.length > 0) {
+    lines.push(`<b>Game Sessions (Page ${page + 1}):</b>`);
+    const subjectIds = Array.from(new Set(sessions.map(s => s.subjectId)));
+    const namesMap = await analyticsService.getSubjectNames(accountId, subjectIds);
+
+    for (const s of sessions) {
+      const gName = s.gameName || 'Unknown Game';
+      const durationMins = s.duration ? Math.floor(s.duration / 60) : 0;
+      const name = namesMap.get(s.subjectId) || s.subjectId.toString();
+      
+      const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));
+      const dateStr = formatWIB(s.startTime);
+      
+      lines.push(`• <b>${escapeHtml(name)}</b> played <b>${escapeHtml(gName)}</b> for ${durationMins} mins <i>(${dateStr})</i>`);
+    }
+  }
+
+  const safeName = nameArg || '';
+  const kb = new InlineKeyboard();
+  if (page > 0) {
+    kb.text('« Prev', `histAll:${page - 1}:${safeName}`);
+  }
+  if (sessions.length === limit) {
+    kb.text('Next »', `histAll:${page + 1}:${safeName}`);
+  }
+
+  return { text: lines.join('\n'), keyboard: kb.inline_keyboard.length > 0 ? kb : null };
+}
+
 export function registerHistoryCommand(bot: Bot): void {
   bot.command('history', async (ctx) => {
     const telegramId = String(ctx.from?.id ?? '');
@@ -95,8 +162,12 @@ export function registerHistoryCommand(bot: Bot): void {
     let dateArg: string | undefined;
 
     if (args.length > 0 && args[0] !== '') {
-      const lastArg = args[args.length - 1];
-      if (/^\d{2}-\d{2}-\d{4}$/.test(lastArg!)) {
+      const lastArg = args[args.length - 1]!;
+      if (lastArg.toLowerCase() === 'all') {
+        dateArg = 'all';
+        nameArg = args.slice(0, -1).join(' ').trim();
+        if (!nameArg) nameArg = undefined;
+      } else if (/^\d{2}-\d{2}-\d{4}$/.test(lastArg!)) {
         dateArg = lastArg;
         nameArg = args.slice(0, -1).join(' ').trim();
         if (!nameArg) nameArg = undefined;
@@ -104,6 +175,16 @@ export function registerHistoryCommand(bot: Bot): void {
         nameArg = args.join(' ').trim();
         if (!nameArg) nameArg = undefined;
       }
+    }
+
+    if (dateArg === 'all') {
+      const { text, keyboard } = await buildAllHistoryMessage(account.id, nameArg, 0);
+      if (keyboard) {
+        await ctx.reply(text, { parse_mode: 'HTML', reply_markup: keyboard });
+      } else {
+        await ctx.reply(text, { parse_mode: 'HTML' });
+      }
+      return;
     }
 
     if (!dateArg) {
@@ -140,6 +221,40 @@ export function registerHistoryCommand(bot: Bot): void {
     if (!nameArg || nameArg === '') nameArg = undefined;
 
     const { text, keyboard } = await buildHistoryMessage(account.id, dateArg, nameArg);
+    
+    try {
+      if (keyboard) {
+        await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: keyboard });
+      } else {
+        await ctx.editMessageText(text, { parse_mode: 'HTML' });
+      }
+    } catch (e) {
+      // Ignore "message is not modified" errors
+    }
+    await ctx.answerCallbackQuery();
+  });
+
+  bot.callbackQuery(/^histAll:(\d+):(.*)$/, async (ctx) => {
+    const telegramId = String(ctx.from?.id ?? '');
+    if (!telegramId) return;
+
+    const account = await accountService.getAccount(telegramId);
+    if (!account) {
+      await ctx.answerCallbackQuery('No account connected.');
+      return;
+    }
+
+    const match = ctx.match;
+    if (!match) {
+      await ctx.answerCallbackQuery('Invalid callback data.');
+      return;
+    }
+
+    const page = parseInt(match[1] as string, 10);
+    let nameArg: string | undefined = match[2];
+    if (!nameArg || nameArg === '') nameArg = undefined;
+
+    const { text, keyboard } = await buildAllHistoryMessage(account.id, nameArg, page);
     
     try {
       if (keyboard) {
