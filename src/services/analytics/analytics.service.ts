@@ -181,7 +181,7 @@ export const analyticsService = {
   /**
    * Get completed game sessions for a single date
    */
-  async getSessionsForDate(accountId: number, targetDate: Date, limit = 10, subjectId?: bigint) {
+  async getSessionsForDate(accountId: number, targetDate: Date, limit = 10, subjectId?: bigint, offset = 0) {
     const nextDay = new Date(targetDate);
     nextDay.setDate(nextDay.getDate() + 1);
 
@@ -204,6 +204,7 @@ export const analyticsService = {
         startTime: 'desc',
       },
       take: limit,
+      skip: offset,
     });
   },
 

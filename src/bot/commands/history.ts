@@ -3,7 +3,7 @@ import { accountService } from '../../services/account/account.service.js';
 import { analyticsService } from '../../services/analytics/analytics.service.js';
 import { formatWIB, formatDuration } from '../../lib/date.js';
 
-async function buildHistoryMessage(accountId: number, targetDateStr: string, nameArg?: string) {
+async function buildHistoryMessage(accountId: number, targetDateStr: string, nameArg?: string, page = 0) {
   const [dd, mm, yyyy] = targetDateStr.split('-');
   const targetDate = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
   targetDate.setHours(0, 0, 0, 0);
@@ -21,7 +21,16 @@ async function buildHistoryMessage(accountId: number, targetDateStr: string, nam
     title = `📜 <b>Activity for ${nameArg} on ${targetIsoStr}</b>`;
   }
 
-  const sessions = await analyticsService.getSessionsForDate(accountId, targetDate, 15, subjectId);
+  if (page > 0) {
+    title += ` (Page ${page + 1})`;
+  }
+
+  const limit = 15;
+  const offset = page * limit;
+  const sessionsAndNext = await analyticsService.getSessionsForDate(accountId, targetDate, limit + 1, subjectId, offset);
+  const hasMore = sessionsAndNext.length > limit;
+  const sessions = sessionsAndNext.slice(0, limit);
+
   let dailySummary: { type: string; duration: number }[] | null = null;
   
   if (subjectId) {
@@ -30,12 +39,12 @@ async function buildHistoryMessage(accountId: number, targetDateStr: string, nam
   
   if (sessions.length === 0 && (!dailySummary || dailySummary.length === 0)) {
     const emptyText = `📭 No activity history found for ${nameArg ? `<b>${nameArg}</b>` : 'anyone'} on <b>${targetIsoStr}</b>.`;
-    return { text: emptyText, keyboard: buildKeyboard(targetDate, nameArg) };
+    return { text: emptyText, keyboard: buildKeyboard(targetDate, nameArg, page, false) };
   }
 
   const lines: string[] = [title, ''];
   
-  if (dailySummary && dailySummary.length > 0) {
+  if (page === 0 && dailySummary && dailySummary.length > 0) {
     lines.push('<b>Presence Summary:</b>');
     for (const s of dailySummary) {
       lines.push(`- ${s.type}: ${formatDuration(s.duration)}`);
@@ -60,10 +69,10 @@ async function buildHistoryMessage(accountId: number, targetDateStr: string, nam
     }
   }
 
-  return { text: lines.join('\n'), keyboard: buildKeyboard(targetDate, nameArg) };
+  return { text: lines.join('\n'), keyboard: buildKeyboard(targetDate, nameArg, page, hasMore) };
 }
 
-function buildKeyboard(targetDate: Date, nameArg?: string): InlineKeyboard {
+function buildKeyboard(targetDate: Date, nameArg: string | undefined, page: number, hasMore: boolean): InlineKeyboard {
   const prevDate = new Date(targetDate);
   prevDate.setDate(prevDate.getDate() - 1);
   const prevStr = `${String(prevDate.getDate()).padStart(2, '0')}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${prevDate.getFullYear()}`;
@@ -71,12 +80,24 @@ function buildKeyboard(targetDate: Date, nameArg?: string): InlineKeyboard {
   const nextDate = new Date(targetDate);
   nextDate.setDate(nextDate.getDate() + 1);
   const nextStr = `${String(nextDate.getDate()).padStart(2, '0')}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${nextDate.getFullYear()}`;
+  const currStr = `${String(targetDate.getDate()).padStart(2, '0')}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${targetDate.getFullYear()}`;
 
   const safeName = nameArg || '';
+  const kb = new InlineKeyboard();
 
-  return new InlineKeyboard()
-    .text('« Prev', `hist:${prevStr}:${safeName}`)
-    .text('Next »', `hist:${nextStr}:${safeName}`);
+  if (hasMore) {
+    kb.text('« Prev', `hist:${currStr}:${safeName}:${page + 1}`);
+  } else {
+    kb.text('« Prev', `hist:${prevStr}:${safeName}:0`);
+  }
+
+  if (page > 0) {
+    kb.text('Next »', `hist:${currStr}:${safeName}:${page - 1}`);
+  } else {
+    kb.text('Next »', `hist:${nextStr}:${safeName}:0`);
+  }
+
+  return kb;
 }
 
 async function buildAllHistoryMessage(accountId: number, nameArg: string | undefined, page: number) {
@@ -200,7 +221,7 @@ export function registerHistoryCommand(bot: Bot): void {
     }
   });
 
-  bot.callbackQuery(/^hist:(.+):(.*)$/, async (ctx) => {
+  bot.callbackQuery(/^hist:([0-9-]{10}):([^:]*)(?::(\d+))?$/, async (ctx) => {
     const telegramId = String(ctx.from?.id ?? '');
     if (!telegramId) return;
 
@@ -219,8 +240,9 @@ export function registerHistoryCommand(bot: Bot): void {
     const dateArg = match[1] as string;
     let nameArg: string | undefined = match[2];
     if (!nameArg || nameArg === '') nameArg = undefined;
+    const page = match[3] ? parseInt(match[3], 10) : 0;
 
-    const { text, keyboard } = await buildHistoryMessage(account.id, dateArg, nameArg);
+    const { text, keyboard } = await buildHistoryMessage(account.id, dateArg, nameArg, page);
     
     try {
       if (keyboard) {
