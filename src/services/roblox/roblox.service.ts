@@ -207,7 +207,7 @@ export const robloxService = {
    */
   async getBadges(cookie: string, userId: number | bigint, cursor?: string): Promise<RobloxBadgesResponse | null> {
     const client = createRobloxClient(cookie);
-    let url = `https://badges.roblox.com/v1/users/${userId}/badges?limit=25&sortOrder=Desc`;
+    let url = `https://badges.roblox.com/v1/users/${userId}/badges?limit=10&sortOrder=Desc`;
     if (cursor) {
       url += `&cursor=${encodeURIComponent(cursor)}`;
     }
