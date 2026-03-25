@@ -16,7 +16,8 @@ export function registerHelpCommand(bot: Bot): void {
         `/list — List your manually tracked users\n\n` +
         `*Analytics*\n` +
         `/stats — Weekly playtime breakdown\n` +
-        `/history \\<username\\> — Session history for a user`,
+        `/history \\<username\\> — Session history for a user\n` +
+        `/badges \\<username\\> — Recent badges for a user`,
       { parse_mode: 'MarkdownV2' }
     );
   });

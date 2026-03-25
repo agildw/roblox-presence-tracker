@@ -84,3 +84,28 @@ export interface RobloxErrorResponse {
 // ── Service return types ──────────────────────────────────────────────────────
 
 export type PresenceMap = Map<number, RobloxUserPresence>;
+
+// ── Badges ───────────────────────────────────────────────────────────────────
+
+export interface RobloxBadge {
+  id: number;
+  name: string;
+  description: string;
+  iconImageId?: number;
+  displayIconImageId?: number;
+}
+
+export interface RobloxBadgesResponse {
+  previousPageCursor: string | null;
+  nextPageCursor: string | null;
+  data: RobloxBadge[];
+}
+
+export interface RobloxBadgeAwardedDate {
+  badgeId: number;
+  awardedDate: string;
+}
+
+export interface RobloxBadgeAwardedDatesResponse {
+  data: RobloxBadgeAwardedDate[];
+}

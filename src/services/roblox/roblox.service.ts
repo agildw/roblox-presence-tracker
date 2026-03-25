@@ -19,6 +19,8 @@ import type {
   RobloxPresenceResponse,
   RobloxUser,
   RobloxUsersResponse,
+  RobloxBadgesResponse,
+  RobloxBadgeAwardedDatesResponse,
 } from './roblox.types.js';
 import type { AxiosError } from 'axios';
 
@@ -197,5 +199,42 @@ export const robloxService = {
     }
 
     return presenceMap;
+  },
+
+  // ── getBadges ───────────────────────────────────────────────────────────────
+  /**
+   * Fetches the recent badges for a user.
+   */
+  async getBadges(cookie: string, userId: number | bigint, cursor?: string): Promise<RobloxBadgesResponse | null> {
+    const client = createRobloxClient(cookie);
+    let url = `https://badges.roblox.com/v1/users/${userId}/badges?limit=25&sortOrder=Desc`;
+    if (cursor) {
+      url += `&cursor=${encodeURIComponent(cursor)}`;
+    }
+
+    try {
+      return await robloxGet<RobloxBadgesResponse>(client, url);
+    } catch (err) {
+      console.error(`[RobloxService] getBadges failed for ${userId}: ${extractRobloxError(err)}`);
+      return null;
+    }
+  },
+
+  // ── getBadgeAwardedDates ────────────────────────────────────────────────────
+  /**
+   * Fetches the awarded dates for specific badges for a user.
+   */
+  async getBadgeAwardedDates(cookie: string, userId: number | bigint, badgeIds: number[]): Promise<RobloxBadgeAwardedDatesResponse | null> {
+    if (badgeIds.length === 0) return { data: [] };
+
+    const client = createRobloxClient(cookie);
+    const url = `https://badges.roblox.com/v1/users/${userId}/badges/awarded-dates?badgeIds=${badgeIds.join(',')}`;
+
+    try {
+      return await robloxGet<RobloxBadgeAwardedDatesResponse>(client, url);
+    } catch (err) {
+      console.error(`[RobloxService] getBadgeAwardedDates failed for ${userId}: ${extractRobloxError(err)}`);
+      return null;
+    }
   },
 };

@@ -12,6 +12,7 @@ import { registerStatsCommand } from './commands/stats.js';
 import { registerTrackCommand } from './commands/track.js';
 import { registerUntrackCommand } from './commands/untrack.js';
 import { registerListCommand } from './commands/list.js';
+import { registerBadgesCommand } from './commands/badges.js';
 import { notificationService } from '../services/notification/notification.service.js';
 
 export function createBot(): Bot {
@@ -40,6 +41,7 @@ export function createBot(): Bot {
   registerTrackCommand(bot);
   registerUntrackCommand(bot);
   registerListCommand(bot);
+  registerBadgesCommand(bot);
 
   return bot;
 }
