@@ -33,9 +33,13 @@ export const trackService = {
     return result.count > 0;
   },
 
-  async getTrackedUsers(accountId: number) {
+  async getTrackedUsers(accountId: number | null) {
+    const where: any = {};
+    if (accountId !== null) {
+      where.robloxAccountId = accountId;
+    }
     return prisma.trackedUser.findMany({
-      where: { robloxAccountId: accountId },
+      where,
       orderBy: { username: 'asc' },
     });
   },

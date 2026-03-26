@@ -2,8 +2,9 @@ import { Bot, InlineKeyboard } from 'grammy';
 import { accountService } from '../../services/account/account.service.js';
 import { analyticsService } from '../../services/analytics/analytics.service.js';
 import { formatWIB, formatDuration } from '../../lib/date.js';
+import { env } from '../../lib/env.js';
 
-async function buildHistoryMessage(accountId: number, targetDateStr: string, nameArg?: string, page = 0) {
+async function buildHistoryMessage(accountId: number | null, targetDateStr: string, nameArg?: string, page = 0) {
   const [dd, mm, yyyy] = targetDateStr.split('-');
   const targetDate = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
   targetDate.setHours(0, 0, 0, 0);
@@ -100,7 +101,7 @@ function buildKeyboard(targetDate: Date, nameArg: string | undefined, page: numb
   return kb;
 }
 
-async function buildAllHistoryMessage(accountId: number, nameArg: string | undefined, page: number) {
+async function buildAllHistoryMessage(accountId: number | null, nameArg: string | undefined, page: number) {
   let subjectId: bigint | undefined;
   let title = `📜 <b>All-Time Game Sessions</b>`;
 
@@ -172,10 +173,16 @@ export function registerHistoryCommand(bot: Bot): void {
     const telegramId = String(ctx.from?.id ?? '');
     if (!telegramId) return;
 
-    const account = await accountService.getAccount(telegramId);
-    if (!account) {
-      await ctx.reply('⚠️ No account connected. Use `/setcookie <cookie>` first.', { parse_mode: 'Markdown' });
-      return;
+    const isAdmin = env.ADMIN_USER_IDS.includes(telegramId);
+    let targetAccountId: number | null = null;
+
+    if (!isAdmin) {
+      const account = await accountService.getAccount(telegramId);
+      if (!account) {
+        await ctx.reply('⚠️ No account connected. Use `/setcookie <cookie>` first.', { parse_mode: 'Markdown' });
+        return;
+      }
+      targetAccountId = account.id;
     }
 
     const args = ctx.match?.trim().split(/\s+/) ?? [];
@@ -199,7 +206,7 @@ export function registerHistoryCommand(bot: Bot): void {
     }
 
     if (dateArg === 'all') {
-      const { text, keyboard } = await buildAllHistoryMessage(account.id, nameArg, 0);
+      const { text, keyboard } = await buildAllHistoryMessage(targetAccountId, nameArg, 0);
       if (keyboard) {
         await ctx.reply(text, { parse_mode: 'HTML', reply_markup: keyboard });
       } else {
@@ -213,7 +220,7 @@ export function registerHistoryCommand(bot: Bot): void {
       dateArg = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
     }
 
-    const { text, keyboard } = await buildHistoryMessage(account.id, dateArg, nameArg);
+    const { text, keyboard } = await buildHistoryMessage(targetAccountId, dateArg, nameArg);
     if (keyboard) {
       await ctx.reply(text, { parse_mode: 'HTML', reply_markup: keyboard });
     } else {
@@ -225,10 +232,16 @@ export function registerHistoryCommand(bot: Bot): void {
     const telegramId = String(ctx.from?.id ?? '');
     if (!telegramId) return;
 
-    const account = await accountService.getAccount(telegramId);
-    if (!account) {
-      await ctx.answerCallbackQuery('No account connected.');
-      return;
+    const isAdmin = env.ADMIN_USER_IDS.includes(telegramId);
+    let targetAccountId: number | null = null;
+
+    if (!isAdmin) {
+      const account = await accountService.getAccount(telegramId);
+      if (!account) {
+        await ctx.answerCallbackQuery('No account connected.');
+        return;
+      }
+      targetAccountId = account.id;
     }
 
     const match = ctx.match;
@@ -242,7 +255,7 @@ export function registerHistoryCommand(bot: Bot): void {
     if (!nameArg || nameArg === '') nameArg = undefined;
     const page = match[3] ? parseInt(match[3], 10) : 0;
 
-    const { text, keyboard } = await buildHistoryMessage(account.id, dateArg, nameArg, page);
+    const { text, keyboard } = await buildHistoryMessage(targetAccountId, dateArg, nameArg, page);
     
     try {
       if (keyboard) {
@@ -260,10 +273,16 @@ export function registerHistoryCommand(bot: Bot): void {
     const telegramId = String(ctx.from?.id ?? '');
     if (!telegramId) return;
 
-    const account = await accountService.getAccount(telegramId);
-    if (!account) {
-      await ctx.answerCallbackQuery('No account connected.');
-      return;
+    const isAdmin = env.ADMIN_USER_IDS.includes(telegramId);
+    let targetAccountId: number | null = null;
+
+    if (!isAdmin) {
+      const account = await accountService.getAccount(telegramId);
+      if (!account) {
+        await ctx.answerCallbackQuery('No account connected.');
+        return;
+      }
+      targetAccountId = account.id;
     }
 
     const match = ctx.match;
@@ -276,7 +295,7 @@ export function registerHistoryCommand(bot: Bot): void {
     let nameArg: string | undefined = match[2];
     if (!nameArg || nameArg === '') nameArg = undefined;
 
-    const { text, keyboard } = await buildAllHistoryMessage(account.id, nameArg, page);
+    const { text, keyboard } = await buildAllHistoryMessage(targetAccountId, nameArg, page);
     
     try {
       if (keyboard) {

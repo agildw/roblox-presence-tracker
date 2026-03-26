@@ -1,31 +1,53 @@
 import type { Bot } from 'grammy';
 import { accountService } from '../../services/account/account.service.js';
 import { analyticsService } from '../../services/analytics/analytics.service.js';
+import { env } from '../../lib/env.js';
 
 export function registerStatusCommand(bot: Bot): void {
   bot.command('status', async (ctx) => {
     const telegramId = String(ctx.from?.id ?? '');
     if (!telegramId) return;
 
-    const account = await accountService.getAccount(telegramId);
-    if (!account) {
-      await ctx.reply('⚠️ No account connected. Use `/setcookie <cookie>` first.', { parse_mode: 'Markdown' });
-      return;
+    const isAdmin = env.ADMIN_USER_IDS.includes(telegramId);
+    let targetAccountId: number | null = null;
+
+    if (!isAdmin) {
+      const account = await accountService.getAccount(telegramId);
+      if (!account) {
+        await ctx.reply('⚠️ No account connected. Use `/setcookie <cookie>` first.', { parse_mode: 'Markdown' });
+        return;
+      }
+      targetAccountId = account.id;
     }
 
-    const sessions = await analyticsService.getActiveSessions(account.id);
-    const websiteSessions = await analyticsService.getActiveWebsiteSessions(account.id);
+    const sessionsRaw = await analyticsService.getActiveSessions(targetAccountId);
+    const websiteSessionsRaw = await analyticsService.getActiveWebsiteSessions(targetAccountId);
+    
+    // Deduplicate for global admin view
+    const sessions = [];
+    const websiteSessions = [];
+    const seenSubjects = new Set<bigint>();
+    
+    for (const s of sessionsRaw) {
+      if (!seenSubjects.has(s.subjectId)) {
+        sessions.push(s);
+        seenSubjects.add(s.subjectId);
+      }
+    }
+    for (const s of websiteSessionsRaw) {
+      if (!seenSubjects.has(s.subjectId)) {
+        websiteSessions.push(s);
+        seenSubjects.add(s.subjectId);
+      }
+    }
     
     if (sessions.length === 0 && websiteSessions.length === 0) {
       await ctx.reply('💤 No friends or tracked users are currently active.');
       return;
     }
 
-    const subjectIds = Array.from(new Set([
-      ...sessions.map(s => s.subjectId),
-      ...websiteSessions.map(s => s.subjectId)
-    ]));
-    const namesMap = await analyticsService.getSubjectNames(account.id, subjectIds);
+    const subjectIds = Array.from(seenSubjects);
+    const namesMap = await analyticsService.getSubjectNames(targetAccountId, subjectIds);
 
     const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));
 

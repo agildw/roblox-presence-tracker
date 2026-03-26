@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { accountService } from '../../services/account/account.service.js';
 import { robloxService } from '../../services/roblox/roblox.service.js';
 import { formatWIB } from '../../lib/date.js';
+import { prisma } from '../../lib/prisma.js';
 
 // ── Pagination Cache ──────────────────────────────────────────────────────────
 
@@ -133,7 +134,16 @@ export function registerBadgesCommand(bot: Bot): void {
       return;
     }
 
-    const { text, keyboard } = await buildBadgesMessage(cookie, robloxUser.id, robloxUser.name);
+    let cookieToUse = cookie;
+    const friendEntry = await prisma.friend.findFirst({
+      where: { friendUserId: BigInt(robloxUser.id) }
+    });
+    if (friendEntry) {
+      const friendCookie = await accountService.getDecryptedCookieByAccountId(friendEntry.robloxAccountId);
+      if (friendCookie) cookieToUse = friendCookie;
+    }
+
+    const { text, keyboard } = await buildBadgesMessage(cookieToUse, robloxUser.id, robloxUser.name);
     
     if (keyboard) {
       await ctx.reply(text, { parse_mode: 'HTML', reply_markup: keyboard });
@@ -162,7 +172,16 @@ export function registerBadgesCommand(bot: Bot): void {
     const cursorId = match[2] as string;
     const username = decodeURIComponent(match[3] as string);
 
-    const { text, keyboard } = await buildBadgesMessage(cookie, userId, username, cursorId);
+    let cookieToUse = cookie;
+    const friendEntry = await prisma.friend.findFirst({
+      where: { friendUserId: BigInt(userId) }
+    });
+    if (friendEntry) {
+      const friendCookie = await accountService.getDecryptedCookieByAccountId(friendEntry.robloxAccountId);
+      if (friendCookie) cookieToUse = friendCookie;
+    }
+
+    const { text, keyboard } = await buildBadgesMessage(cookieToUse, userId, username, cursorId);
     
     try {
       if (keyboard) {

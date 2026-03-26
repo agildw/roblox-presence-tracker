@@ -1,19 +1,36 @@
 import type { Bot } from 'grammy';
 import { accountService } from '../../services/account/account.service.js';
 import { trackService } from '../../services/presence/track.service.js';
+import { env } from '../../lib/env.js';
 
 export function registerListCommand(bot: Bot): void {
   bot.command(['list', 'tracked'], async (ctx) => {
     const telegramId = String(ctx.from?.id ?? '');
     if (!telegramId) return;
 
-    const account = await accountService.getAccount(telegramId);
-    if (!account) {
-      await ctx.reply('⚠️ No account connected. Use <code>/setcookie &lt;cookie&gt;</code> first.', { parse_mode: 'HTML' });
-      return;
+    const isAdmin = env.ADMIN_USER_IDS.includes(telegramId);
+    let targetAccountId: number | null = null;
+
+    if (!isAdmin) {
+      const account = await accountService.getAccount(telegramId);
+      if (!account) {
+        await ctx.reply('⚠️ No account connected. Use <code>/setcookie &lt;cookie&gt;</code> first.', { parse_mode: 'HTML' });
+        return;
+      }
+      targetAccountId = account.id;
     }
 
-    const trackedUsers = await trackService.getTrackedUsers(account.id);
+    const trackedUsersRaw = await trackService.getTrackedUsers(targetAccountId);
+    
+    // Deduplicate for global admin view
+    const trackedUsers = [];
+    const seenUsers = new Set<bigint>();
+    for (const tu of trackedUsersRaw) {
+      if (!seenUsers.has(tu.robloxUserId)) {
+        trackedUsers.push(tu);
+        seenUsers.add(tu.robloxUserId);
+      }
+    }
 
     if (trackedUsers.length === 0) {
       await ctx.reply('📭 You are not manually tracking anyone right now.\nUse <code>/track &lt;username&gt;</code> to start.', { parse_mode: 'HTML' });

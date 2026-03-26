@@ -2,16 +2,23 @@ import type { Bot } from 'grammy';
 import { accountService } from '../../services/account/account.service.js';
 import { analyticsService } from '../../services/analytics/analytics.service.js';
 import { formatDuration } from '../../lib/date.js';
+import { env } from '../../lib/env.js';
 
 export function registerStatsCommand(bot: Bot): void {
   bot.command('stats', async (ctx) => {
     const telegramId = String(ctx.from?.id ?? '');
     if (!telegramId) return;
 
-    const account = await accountService.getAccount(telegramId);
-    if (!account) {
-      await ctx.reply('⚠️ No account connected. Use <code>/setcookie &lt;cookie&gt;</code> first.', { parse_mode: 'HTML' });
-      return;
+    const isAdmin = env.ADMIN_USER_IDS.includes(telegramId);
+    let targetAccountId: number | null = null;
+
+    if (!isAdmin) {
+      const account = await accountService.getAccount(telegramId);
+      if (!account) {
+        await ctx.reply('⚠️ No account connected. Use <code>/setcookie &lt;cookie&gt;</code> first.', { parse_mode: 'HTML' });
+        return;
+      }
+      targetAccountId = account.id;
     }
 
     // Parse arguments: /stats, /stats 30d, /stats Agil, /stats Agil 30d
@@ -39,7 +46,7 @@ export function registerStatsCommand(bot: Bot): void {
     let titlePrefix = '📊 <b>Playtime Stats';
 
     if (nameArg) {
-      const foundId = await analyticsService.getSubjectByName(account.id, nameArg);
+      const foundId = await analyticsService.getSubjectByName(targetAccountId, nameArg);
       if (!foundId) {
         await ctx.reply(`🔍 User "<code>${nameArg}</code>" not found in your tracked friends or users.`, { parse_mode: 'HTML' });
         return;
@@ -48,8 +55,8 @@ export function registerStatsCommand(bot: Bot): void {
       titlePrefix += ` for ${nameArg}`;
     }
 
-    const stats = await analyticsService.getPlaytimeStats(account.id, days, subjectId);
-    const pStats = await analyticsService.getPresenceStats(account.id, days, subjectId);
+    const stats = await analyticsService.getPlaytimeStats(targetAccountId, days, subjectId);
+    const pStats = await analyticsService.getPresenceStats(targetAccountId, days, subjectId);
     
     if (stats.length === 0 && pStats.length === 0) {
       const timeStr = days === 'all' ? 'at all' : `in the last ${days} days`;

@@ -13,4 +13,5 @@ export const env = {
   DATABASE_URL: requireEnv('DATABASE_URL'),
   ENCRYPTION_KEY: process.env['ENCRYPTION_KEY'] ?? 'changeme-32-char-secret-key12345',
   NODE_ENV: process.env['NODE_ENV'] ?? 'development',
+  ADMIN_USER_IDS: (process.env['ADMIN_USER_IDS'] || '').split(',').map(id => id.trim()).filter(Boolean),
 } as const;

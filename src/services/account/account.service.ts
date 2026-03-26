@@ -120,4 +120,20 @@ export const accountService = {
     });
     return user?.robloxAccount ?? null;
   },
+
+  // ── getDecryptedCookieByAccountId ───────────────────────────────────────────
+  /**
+   * Retrieves and decrypts the stored cookie for a specific RobloxAccount.
+   */
+  async getDecryptedCookieByAccountId(accountId: number): Promise<string | null> {
+    const account = await prisma.robloxAccount.findUnique({
+      where: { id: accountId },
+      select: { roblosecurity: true },
+    });
+
+    const encrypted = account?.roblosecurity;
+    if (!encrypted) return null;
+
+    return decrypt(encrypted);
+  },
 };
