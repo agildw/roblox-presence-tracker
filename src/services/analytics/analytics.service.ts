@@ -1,4 +1,6 @@
 import { prisma } from '../../lib/prisma.js';
+import { robloxService } from '../roblox/roblox.service.js';
+import { accountService } from '../account/account.service.js';
 
 export const analyticsService = {
   /**
@@ -301,5 +303,26 @@ export const analyticsService = {
     if (tracked) return tracked.robloxUserId;
 
     return null;
+  },
+
+  /**
+   * Helper to get live presence (including lastOnline timestamp) from Roblox API
+   */
+  async getSubjectLivePresence(accountId: number | null, subjectId: bigint) {
+    let cookie: string | null = null;
+    if (accountId) {
+      cookie = await accountService.getDecryptedCookieByAccountId(accountId);
+    } else {
+      // Admin case - use any available valid cookie
+      const acc = await prisma.robloxAccount.findFirst({ select: { id: true } });
+      if (acc) {
+        cookie = await accountService.getDecryptedCookieByAccountId(acc.id);
+      }
+    }
+    
+    if (!cookie) return null;
+    
+    const presenceMap = await robloxService.getPresence(cookie, [Number(subjectId)]);
+    return presenceMap.get(Number(subjectId));
   }
 };

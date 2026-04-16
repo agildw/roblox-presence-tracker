@@ -130,6 +130,22 @@ async function buildAllHistoryMessage(accountId: number | null, nameArg: string 
 
   const lines: string[] = [title, ''];
   
+  if (page === 0 && subjectId) {
+    const livePresence = await analyticsService.getSubjectLivePresence(accountId, subjectId);
+    if (livePresence) {
+      const types = ['Offline', 'Online (Website)', 'In Game', 'In Studio'];
+      const statusStr = types[livePresence.userPresenceType] || 'Unknown';
+      const locStr = livePresence.lastLocation ? ` - ${livePresence.lastLocation}` : '';
+      
+      const lastOnlineDate = new Date(livePresence.lastOnline);
+      const loStr = formatWIB(lastOnlineDate);
+      
+      lines.push(`<b>Current Status:</b> ${statusStr}${locStr}`);
+      lines.push(`<b>Last Online:</b> ${loStr}`);
+      lines.push('');
+    }
+  }
+
   // Only show presence summary on page 0
   if (page === 0 && pStats.length > 0) {
     lines.push('<b>All-Time Presence:</b>');
