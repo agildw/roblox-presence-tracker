@@ -324,5 +324,29 @@ export const analyticsService = {
     
     const presenceMap = await robloxService.getPresence(cookie, [Number(subjectId)]);
     return presenceMap.get(Number(subjectId));
+  },
+
+  /**
+   * Helper to get lastSeenAt from the database for a subject
+   */
+  async getSubjectLastSeenAt(accountId: number | null, subjectId: bigint): Promise<Date | null> {
+    const friendWhere: any = { friendUserId: subjectId };
+    const trackedWhere: any = { robloxUserId: subjectId };
+
+    if (accountId !== null) {
+      friendWhere.robloxAccountId = accountId;
+      trackedWhere.robloxAccountId = accountId;
+    }
+
+    const [friend, tracked] = await Promise.all([
+      prisma.friend.findFirst({ where: friendWhere, select: { lastSeenAt: true }, orderBy: { lastSeenAt: 'desc' } }),
+      prisma.trackedUser.findFirst({ where: trackedWhere, select: { lastSeenAt: true }, orderBy: { lastSeenAt: 'desc' } })
+    ]);
+
+    const d1 = friend?.lastSeenAt?.getTime() || 0;
+    const d2 = tracked?.lastSeenAt?.getTime() || 0;
+
+    if (d1 === 0 && d2 === 0) return null;
+    return new Date(Math.max(d1, d2));
   }
 };

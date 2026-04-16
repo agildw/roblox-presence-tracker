@@ -137,8 +137,20 @@ async function buildAllHistoryMessage(accountId: number | null, nameArg: string 
       const statusStr = types[livePresence.userPresenceType] || 'Unknown';
       const locStr = livePresence.lastLocation ? ` - ${livePresence.lastLocation}` : '';
       
-      const lastOnlineDate = new Date(livePresence.lastOnline);
-      const loStr = formatWIB(lastOnlineDate);
+      let loStr = 'Unknown';
+      if (livePresence.lastOnline) {
+        const lastOnlineDate = new Date(livePresence.lastOnline);
+        if (!isNaN(lastOnlineDate.getTime())) {
+          loStr = formatWIB(lastOnlineDate);
+        }
+      }
+      
+      if (loStr === 'Unknown') {
+        const dbLastSeen = await analyticsService.getSubjectLastSeenAt(accountId, subjectId);
+        if (dbLastSeen) {
+          loStr = `${formatWIB(dbLastSeen)} <i>(from tracker cache)</i>`;
+        }
+      }
       
       lines.push(`<b>Current Status:</b> ${statusStr}${locStr}`);
       lines.push(`<b>Last Online:</b> ${loStr}`);
