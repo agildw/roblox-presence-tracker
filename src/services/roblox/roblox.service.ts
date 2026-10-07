@@ -9,7 +9,7 @@
  *  - Return typed responses — never return raw axios data
  */
 
-import { chunk, createRobloxClient, robloxGet, robloxPost } from '../../lib/http.js';
+import { chunk, createRobloxClient, robloxGet, robloxPost, sleep } from '../../lib/http.js';
 import type {
   PresenceMap,
   RobloxAuthUser,
@@ -31,6 +31,7 @@ const FRIENDS_BASE  = 'https://friends.roblox.com';
 const PRESENCE_BASE = 'https://presence.roblox.com';
 
 const BATCH_SIZE = 100; // Roblox API hard limit per request
+const PRESENCE_BATCH_SIZE = 50;
 
 // ── Custom error ──────────────────────────────────────────────────────────────
 
@@ -137,6 +138,7 @@ export const robloxService = {
           `[RobloxService] getUsersBatch batch failed: ${extractRobloxError(err)}`,
         );
       }
+      await sleep(1000);
     }
 
     return results;
@@ -176,7 +178,7 @@ export const robloxService = {
     if (userIds.length === 0) return new Map();
 
     const client = createRobloxClient(cookie);
-    const batches = chunk(userIds, BATCH_SIZE);
+    const batches = chunk(userIds, PRESENCE_BATCH_SIZE);
     const presenceMap: PresenceMap = new Map();
 
     for (const batch of batches) {
@@ -196,6 +198,7 @@ export const robloxService = {
           `[RobloxService] getPresence batch failed: ${extractRobloxError(err)}`,
         );
       }
+      await sleep(1000);
     }
 
     return presenceMap;
