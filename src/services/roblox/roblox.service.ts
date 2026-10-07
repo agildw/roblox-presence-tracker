@@ -122,6 +122,7 @@ export const robloxService = {
     const results: RobloxUser[] = [];
 
     for (const batch of batches) {
+      let batchFailed = false;
       try {
         const res = await robloxPost<RobloxUsersResponse>(
           client,
@@ -133,12 +134,13 @@ export const robloxService = {
         );
         results.push(...res.data);
       } catch (err) {
+        batchFailed = true;
         // Log but don't throw — partial results are acceptable
         console.error(
           `[RobloxService] getUsersBatch batch failed: ${extractRobloxError(err)}`,
         );
       }
-      await sleep(3000);
+      await sleep(batchFailed ? 15_000 : 3_000);
     }
 
     return results;
@@ -182,6 +184,7 @@ export const robloxService = {
     const presenceMap: PresenceMap = new Map();
 
     for (const batch of batches) {
+      let batchFailed = false;
       try {
         const res = await robloxPost<RobloxPresenceResponse>(
           client,
@@ -193,12 +196,13 @@ export const robloxService = {
           presenceMap.set(presence.userId, presence);
         }
       } catch (err) {
+        batchFailed = true;
         // Log but continue — avoid killing the entire poll cycle on one bad batch
         console.error(
           `[RobloxService] getPresence batch failed: ${extractRobloxError(err)}`,
         );
       }
-      await sleep(3000);
+      await sleep(batchFailed ? 15_000 : 3_000);
     }
 
     return presenceMap;

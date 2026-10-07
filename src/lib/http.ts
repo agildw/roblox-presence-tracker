@@ -13,6 +13,7 @@ import axios, {
 
 const DEFAULT_MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 1_000; // exponential back-off base
+const RATE_LIMIT_BASE_DELAY_MS = 10_000; // longer back-off for 429 rate limits
 
 // ── Factory ───────────────────────────────────────────────────────────────────
 
@@ -57,8 +58,24 @@ export async function withRetry<T>(
         throw err;
       }
 
+      // For 429: only retry once, with a much longer backoff
+      if (status === 429 && attempt >= 1) {
+        throw err;
+      }
+
       if (attempt < maxRetries) {
-        const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
+        let delay: number;
+
+        if (status === 429) {
+          // Respect Retry-After header if present, otherwise use 10s base
+          const retryAfter = axiosErr.response?.headers?.['retry-after'];
+          delay = retryAfter
+            ? Math.max(parseInt(retryAfter, 10) * 1000, RATE_LIMIT_BASE_DELAY_MS)
+            : RATE_LIMIT_BASE_DELAY_MS * Math.pow(2, attempt);
+        } else {
+          delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
+        }
+
         console.warn(
           `[HTTP] Attempt ${attempt + 1} failed (status=${status ?? 'network'}). Retrying in ${delay}ms…`,
         );
