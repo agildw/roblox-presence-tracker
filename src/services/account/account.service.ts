@@ -136,4 +136,52 @@ export const accountService = {
 
     return decrypt(encrypted);
   },
+
+  // ── Disable / Enable User ───────────────────────────────────────────────────
+
+  async disableUser(telegramId: string): Promise<TelegramUser | null> {
+    const user = await prisma.telegramUser.findUnique({
+      where: { telegramId },
+      include: { robloxAccount: true },
+    });
+    if (!user) return null;
+
+    // 1. Mark user as disabled
+    const updated = await prisma.telegramUser.update({
+      where: { telegramId },
+      data: { isDisabled: true, disabledAt: new Date() },
+    });
+
+    // 2. Close any open sessions for the linked RobloxAccount
+    if (user.robloxAccount) {
+      const now = new Date();
+      await prisma.$transaction([
+        prisma.gameSession.updateMany({
+          where: { robloxAccountId: user.robloxAccount.id, endTime: null },
+          data: { endTime: now },
+        }),
+        prisma.presenceSession.updateMany({
+          where: { robloxAccountId: user.robloxAccount.id, endTime: null },
+          data: { endTime: now },
+        }),
+      ]);
+    }
+
+    return updated;
+  },
+
+  async enableUser(telegramId: string): Promise<TelegramUser | null> {
+    return prisma.telegramUser.update({
+      where: { telegramId },
+      data: { isDisabled: false, disabledAt: null },
+    });
+  },
+
+  async isUserDisabled(telegramId: string): Promise<boolean> {
+    const user = await prisma.telegramUser.findUnique({
+      where: { telegramId },
+      select: { isDisabled: true },
+    });
+    return user?.isDisabled ?? false;
+  },
 };

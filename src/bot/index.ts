@@ -13,7 +13,10 @@ import { registerTrackCommand } from './commands/track.js';
 import { registerUntrackCommand } from './commands/untrack.js';
 import { registerListCommand } from './commands/list.js';
 import { registerBadgesCommand } from './commands/badges.js';
+import { registerDisableCommand } from './commands/disable.js';
+import { registerEnableCommand } from './commands/enable.js';
 import { notificationService } from '../services/notification/notification.service.js';
+import { disabledGuard } from './middleware/disabled-guard.js';
 
 export function createBot(): Bot {
   const bot = new Bot(env.BOT_TOKEN);
@@ -27,6 +30,9 @@ export function createBot(): Bot {
     console.error(`[Bot] Error while handling update ${ctx.update.update_id}:`);
     console.error(err.error);
   });
+
+  // ─── Global middleware ─────────────────────────────────────────────────────
+  bot.use(disabledGuard);
 
   // ─── Register commands ─────────────────────────────────────────────────────
   registerStartCommand(bot);
@@ -42,6 +48,8 @@ export function createBot(): Bot {
   registerUntrackCommand(bot);
   registerListCommand(bot);
   registerBadgesCommand(bot);
+  registerDisableCommand(bot);
+  registerEnableCommand(bot);
 
   return bot;
 }

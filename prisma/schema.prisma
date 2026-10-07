@@ -16,6 +16,8 @@ model TelegramUser {
   telegramId String   @unique // Telegram user ID (stored as string for safety)
   username   String? // @username, may be absent
   firstName  String?
+  isDisabled Boolean  @default(false)
+  disabledAt DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

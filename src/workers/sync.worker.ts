@@ -37,6 +37,9 @@ export function stopSyncWorker(): void {
 
 async function runSyncCycle() {
   const accounts = await prisma.robloxAccount.findMany({
+    where: {
+      user: { isDisabled: false },
+    },
     include: {
       user: { select: { telegramId: true } },
     },

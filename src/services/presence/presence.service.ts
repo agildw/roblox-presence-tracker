@@ -19,6 +19,9 @@ export const presenceService = {
   async pollAllPresence(): Promise<void> {
     // 1. Fetch all connected accounts
     const accounts = await prisma.robloxAccount.findMany({
+      where: {
+        user: { isDisabled: false },
+      },
       include: {
         user: { select: { telegramId: true } },
       },
