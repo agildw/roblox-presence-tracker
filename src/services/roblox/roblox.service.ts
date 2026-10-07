@@ -4,12 +4,19 @@
  * All interactions with the Roblox API go through this service.
  * Rules:
  *  - Always inject the .ROBLOSECURITY cookie per request
- *  - Batch user lookups: max 100 user IDs per request
- *  - Retry on rate limits (429) with exponential back-off
+ *  - Batch user lookups within the endpoint limits
+ *  - Every request goes through the shared limiter (`lib/ratelimit.ts`)
  *  - Return typed responses — never return raw axios data
+ *
+ * Batch behaviour: a worker cycle only issues up to
+ * `ROBLOX_MAX_BATCHES_PER_CYCLE` batches (callers order batches by priority),
+ * and stops as soon as Roblox throttles — the cycle's worker then reschedules
+ * after the cooldown instead of retrying inline and stacking requests.
  */
 
-import { chunk, createRobloxClient, robloxGet, robloxPost, sleep } from '../../lib/http.js';
+import { chunk, createRobloxClient, robloxGet, robloxPost } from '../../lib/http.js';
+import { env } from '../../lib/env.js';
+import { RateLimitRejection, robloxRateLimiter, type RequestPriority } from '../../lib/ratelimit.js';
 import type {
   PresenceMap,
   RobloxAuthUser,
@@ -29,9 +36,7 @@ import type { AxiosError } from 'axios';
 const USERS_BASE    = 'https://users.roblox.com';
 const FRIENDS_BASE  = 'https://friends.roblox.com';
 const PRESENCE_BASE = 'https://presence.roblox.com';
-
-const BATCH_SIZE = 100; // Roblox API hard limit per request
-const PRESENCE_BATCH_SIZE = 50;
+const BADGES_BASE   = 'https://badges.roblox.com';
 
 // ── Custom error ──────────────────────────────────────────────────────────────
 
@@ -56,6 +61,26 @@ function extractRobloxError(err: unknown): string {
   return String((err as Error).message ?? 'Unknown error');
 }
 
+/** True when the failure is Roblox throttling us (HTTP 429 or a limiter cooldown). */
+function isThrottled(err: unknown): boolean {
+  if (err instanceof RateLimitRejection) return true;
+  return (err as AxiosError).response?.status === 429;
+}
+
+/** Caps the number of batches a single cycle may issue; logs when it truncates. */
+function batchLimit(totalBatches: number, label: string, priority: RequestPriority): number {
+  if (priority !== 'cycle') return totalBatches;
+
+  const cap = env.ROBLOX_MAX_BATCHES_PER_CYCLE;
+  if (totalBatches <= cap) return totalBatches;
+
+  console.warn(
+    `[RobloxService] ${label}: ${totalBatches} batches exceed the per-cycle cap ` +
+      `(ROBLOX_MAX_BATCHES_PER_CYCLE=${cap}); issuing the first ${cap}, the rest follow next cycle.`,
+  );
+  return cap;
+}
+
 // ── Service ───────────────────────────────────────────────────────────────────
 
 export const robloxService = {
@@ -71,6 +96,7 @@ export const robloxService = {
       return await robloxGet<RobloxAuthUser>(
         client,
         `${USERS_BASE}/v1/users/authenticated`,
+        { label: 'validateCookie', priority: 'interactive', retryOn429: true },
       );
     } catch (err) {
       const status = (err as AxiosError).response?.status;
@@ -98,6 +124,7 @@ export const robloxService = {
       const res = await robloxGet<RobloxFriendsResponse>(
         client,
         `${FRIENDS_BASE}/v1/users/${robloxUserId}/friends`,
+        { label: 'getFriends' },
       );
       return res.data;
     } catch (err) {
@@ -110,37 +137,45 @@ export const robloxService = {
 
   // ── getUsersBatch ───────────────────────────────────────────────────────────
   /**
-   * Fetches user info (username, displayName) for up to N user IDs.
-   * Automatically batches into chunks of 100 and merges results.
-   * IDs not found in Roblox's response are silently skipped.
+   * Fetches user info (username, displayName) for a list of user IDs,
+   * batching within Roblox's limit. On throttling it stops early and returns
+   * whatever it managed to fetch — partial results are acceptable.
    */
-  async getUsersBatch(cookie: string, userIds: number[]): Promise<RobloxUser[]> {
+  async getUsersBatch(
+    cookie: string,
+    userIds: number[],
+    priority: RequestPriority = 'cycle',
+  ): Promise<RobloxUser[]> {
     if (userIds.length === 0) return [];
 
     const client = createRobloxClient(cookie);
-    const batches = chunk(userIds, BATCH_SIZE);
+    const batches = chunk(userIds, env.USER_BATCH_SIZE);
+    const limit = batchLimit(batches.length, 'getUsersBatch', priority);
     const results: RobloxUser[] = [];
 
-    for (const batch of batches) {
-      let batchFailed = false;
+    for (let i = 0; i < limit; i++) {
+      const batch = batches[i];
+      if (!batch) break;
+
       try {
         const res = await robloxPost<RobloxUsersResponse>(
           client,
           `${USERS_BASE}/v1/users`,
-          {
-            userIds: batch,
-            excludeBannedUsers: false,
-          },
+          { userIds: batch, excludeBannedUsers: false },
+          { label: `getUsersBatch ${i + 1}/${limit}`, priority },
         );
         results.push(...res.data);
       } catch (err) {
-        batchFailed = true;
+        if (isThrottled(err)) {
+          console.warn(
+            `[RobloxService] getUsersBatch stopped at batch ${i + 1}/${limit}: ` +
+              `${extractRobloxError(err)}.${robloxRateLimiter.describe()}`,
+          );
+          break;
+        }
         // Log but don't throw — partial results are acceptable
-        console.error(
-          `[RobloxService] getUsersBatch batch failed: ${extractRobloxError(err)}`,
-        );
+        console.error(`[RobloxService] getUsersBatch batch failed: ${extractRobloxError(err)}`);
       }
-      await sleep(batchFailed ? 15_000 : 3_000);
     }
 
     return results;
@@ -156,10 +191,8 @@ export const robloxService = {
       const res = await robloxPost<RobloxUsersResponse>(
         client,
         `${USERS_BASE}/v1/usernames/users`,
-        {
-          usernames: [username],
-          excludeBannedUsers: false,
-        },
+        { usernames: [username], excludeBannedUsers: false },
+        { label: 'getUserByUsername', priority: 'interactive', retryOn429: true },
       );
       return res.data?.[0] ?? null;
     } catch (err) {
@@ -172,37 +205,55 @@ export const robloxService = {
 
   // ── getPresence ─────────────────────────────────────────────────────────────
   /**
-   * Fetches presence data for up to N user IDs.
-   * Automatically batches into chunks of 100.
+   * Fetches presence data for a list of user IDs, in the given order.
+   *
+   * Roblox rejects more than 50 IDs per request (HTTP 400), so batches are
+   * capped at `PRESENCE_BATCH_SIZE`. Callers pass the most important IDs first
+   * (tracked users before friends) so that when the per-cycle batch cap kicks
+   * in, the high-priority subjects are the ones that stay fresh.
+   *
    * Returns a Map<userId, RobloxUserPresence> for O(1) lookups.
    */
-  async getPresence(cookie: string, userIds: number[]): Promise<PresenceMap> {
+  async getPresence(
+    cookie: string,
+    userIds: number[],
+    priority: RequestPriority = 'cycle',
+  ): Promise<PresenceMap> {
     if (userIds.length === 0) return new Map();
 
     const client = createRobloxClient(cookie);
-    const batches = chunk(userIds, PRESENCE_BATCH_SIZE);
+    const batches = chunk(userIds, env.PRESENCE_BATCH_SIZE);
+    const limit = batchLimit(batches.length, 'getPresence', priority);
     const presenceMap: PresenceMap = new Map();
 
-    for (const batch of batches) {
-      let batchFailed = false;
+    for (let i = 0; i < limit; i++) {
+      const batch = batches[i];
+      if (!batch) break;
+
       try {
         const res = await robloxPost<RobloxPresenceResponse>(
           client,
           `${PRESENCE_BASE}/v1/presence/users`,
           { userIds: batch },
+          { label: `getPresence ${i + 1}/${limit}`, priority },
         );
 
         for (const presence of res.userPresences) {
           presenceMap.set(presence.userId, presence);
         }
       } catch (err) {
-        batchFailed = true;
+        if (isThrottled(err)) {
+          console.warn(
+            `[RobloxService] getPresence stopped at batch ${i + 1}/${limit}: ` +
+              `${extractRobloxError(err)}.${robloxRateLimiter.describe()}`,
+          );
+          break;
+        }
         // Log but continue — avoid killing the entire poll cycle on one bad batch
         console.error(
           `[RobloxService] getPresence batch failed: ${extractRobloxError(err)}`,
         );
       }
-      await sleep(batchFailed ? 15_000 : 3_000);
     }
 
     return presenceMap;
@@ -214,13 +265,17 @@ export const robloxService = {
    */
   async getBadges(cookie: string, userId: number | bigint, cursor?: string): Promise<RobloxBadgesResponse | null> {
     const client = createRobloxClient(cookie);
-    let url = `https://badges.roblox.com/v1/users/${userId}/badges?limit=10&sortOrder=Desc`;
+    let url = `${BADGES_BASE}/v1/users/${userId}/badges?limit=10&sortOrder=Desc`;
     if (cursor) {
       url += `&cursor=${encodeURIComponent(cursor)}`;
     }
 
     try {
-      return await robloxGet<RobloxBadgesResponse>(client, url);
+      return await robloxGet<RobloxBadgesResponse>(client, url, {
+        label: 'getBadges',
+        priority: 'interactive',
+        retryOn429: true,
+      });
     } catch (err) {
       console.error(`[RobloxService] getBadges failed for ${userId}: ${extractRobloxError(err)}`);
       return null;
@@ -235,10 +290,14 @@ export const robloxService = {
     if (badgeIds.length === 0) return { data: [] };
 
     const client = createRobloxClient(cookie);
-    const url = `https://badges.roblox.com/v1/users/${userId}/badges/awarded-dates?badgeIds=${badgeIds.join(',')}`;
+    const url = `${BADGES_BASE}/v1/users/${userId}/badges/awarded-dates?badgeIds=${badgeIds.join(',')}`;
 
     try {
-      return await robloxGet<RobloxBadgeAwardedDatesResponse>(client, url);
+      return await robloxGet<RobloxBadgeAwardedDatesResponse>(client, url, {
+        label: 'getBadgeAwardedDates',
+        priority: 'interactive',
+        retryOn429: true,
+      });
     } catch (err) {
       console.error(`[RobloxService] getBadgeAwardedDates failed for ${userId}: ${extractRobloxError(err)}`);
       return null;

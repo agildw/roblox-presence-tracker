@@ -2,6 +2,13 @@
  * PresenceService
  *
  * Handles polling Roblox presence for all tracked users across all accounts.
+ *
+ * Ordering matters: batches are filled with manually tracked users before
+ * friends, so when the per-cycle batch cap truncates a poll, the subjects the
+ * user explicitly asked to watch are the ones that stay fresh.
+ *
+ * If Roblox throttles mid-cycle, the cycle stops for the remaining accounts and
+ * the worker reschedules after the shared cooldown — it never retries in place.
  */
 
 import { prisma } from '../../lib/prisma.js';
@@ -9,8 +16,9 @@ import { robloxService } from '../roblox/roblox.service.js';
 import { accountService } from '../account/account.service.js';
 import { notificationService } from '../notification/notification.service.js';
 import { sessionService } from '../session/session.service.js';
+import { robloxRateLimiter } from '../../lib/ratelimit.js';
+import { env } from '../../lib/env.js';
 import type { RobloxUserPresence } from '../roblox/roblox.types.js';
-import { chunk } from '../../lib/http.js';
 
 export const presenceService = {
   /**
@@ -27,11 +35,25 @@ export const presenceService = {
       },
     });
 
-    for (const account of accounts) {
+    for (let i = 0; i < accounts.length; i++) {
+      const account = accounts[i];
+      if (!account) continue;
+
       try {
         await this.pollAccountPresence(account, account.user.telegramId);
       } catch (err) {
         console.error(`[PresenceService] Failed to poll for account ${account.robloxUserId}:`, err);
+      }
+
+      // Throttled: stop the cycle instead of queueing more doomed requests.
+      const cooldown = robloxRateLimiter.snapshot().cooldownRemainingMs;
+      if (cooldown > 0) {
+        console.warn(
+          `[PresenceService] Cycle halted: Roblox cooldown active, ${Math.ceil(cooldown / 1000)}s remaining.` +
+            ` Skipping ${accounts.length - i - 1} remaining account(s) this cycle.` +
+            robloxRateLimiter.describe(),
+        );
+        break;
       }
     }
   },
@@ -50,14 +72,16 @@ export const presenceService = {
       prisma.trackedUser.findMany({ where: { robloxAccountId: account.id } }),
     ]);
 
-    // Combine and deduplicate IDs
+    // Combine and deduplicate IDs. Tracked users are inserted first so they own
+    // the earliest batches; a tracked user that is also a friend counts once.
     const userMap = new Map<bigint, { id: number; type: 'FRIEND' | 'TRACKED'; lastPresence: number | null; lastGameId: string | null }>();
 
-    for (const f of friends) {
-      userMap.set(f.friendUserId, { id: f.id, type: 'FRIEND', lastPresence: f.lastPresence, lastGameId: f.lastGameId });
-    }
     for (const t of trackedUsers) {
       userMap.set(t.robloxUserId, { id: t.id, type: 'TRACKED', lastPresence: t.lastPresence, lastGameId: t.lastGameId });
+    }
+    for (const f of friends) {
+      if (userMap.has(f.friendUserId)) continue;
+      userMap.set(f.friendUserId, { id: f.id, type: 'FRIEND', lastPresence: f.lastPresence, lastGameId: f.lastGameId });
     }
 
     const uniqueUserIds = Array.from(userMap.keys());
@@ -65,16 +89,30 @@ export const presenceService = {
 
     // Convert bigints to number for the API call (safe as long as it fits in JS number/safe int, standard for roblox API)
     const numericIds = uniqueUserIds.map((id) => Number(id));
+    const batchCount = Math.ceil(numericIds.length / env.PRESENCE_BATCH_SIZE);
 
-    // Batch requests (100 is max per SKILL.md and roblox.service.ts handles batching anyway, but let's be sure)
+    console.log(
+      `[PresenceService] Account ${account.robloxUserId}: polling ${numericIds.length} users ` +
+        `(${trackedUsers.length} tracked, ${friends.length} friends, ${numericIds.length} unique) ` +
+        `in ${batchCount} batch(es).${robloxRateLimiter.describe()}`,
+    );
+
     const presenceMap = await robloxService.getPresence(cookie, numericIds);
+
+    if (presenceMap.size === 0 && numericIds.length > 0) {
+      console.warn(
+        `[PresenceService] No presence data returned for account ${account.robloxUserId} ` +
+          `(${numericIds.length} requested).${robloxRateLimiter.describe()}`,
+      );
+      return;
+    }
 
     for (const [userIdNum, newPresence] of presenceMap.entries()) {
       const userId = BigInt(userIdNum);
       const cached = userMap.get(userId);
       if (!cached) continue;
 
-      this.compareAndHandleChanges(telegramId, account.id, cached.id, userId, cached.type, cached, newPresence);
+      await this.compareAndHandleChanges(telegramId, account.id, cached.id, userId, cached.type, cached, newPresence);
     }
   },
 
@@ -153,7 +191,8 @@ export const presenceService = {
       void notificationService.notifyPresenceChange(telegramId, recordId, type, `Went offline.`, 'offline');
     }
 
-    // Update DB
+    // Update DB (awaited so the next cycle reads fresh state instead of
+    // re-detecting — and re-notifying — the same transition)
     const updateData = {
       lastPresence: newState.userPresenceType,
       lastGameId: newState.gameId,
@@ -162,9 +201,9 @@ export const presenceService = {
     };
 
     if (type === 'FRIEND') {
-      prisma.friend.update({ where: { id: recordId }, data: updateData }).catch((e) => console.error(e));
+      await prisma.friend.update({ where: { id: recordId }, data: updateData }).catch((e) => console.error(e));
     } else {
-      prisma.trackedUser.update({ where: { id: recordId }, data: {
+      await prisma.trackedUser.update({ where: { id: recordId }, data: {
         lastPresence: updateData.lastPresence,
         lastGameId: updateData.lastGameId,
         lastSeenAt: updateData.lastSeenAt,

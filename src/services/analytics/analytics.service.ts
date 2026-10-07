@@ -321,9 +321,18 @@ export const analyticsService = {
     }
     
     if (!cookie) return null;
-    
-    const presenceMap = await robloxService.getPresence(cookie, [Number(subjectId)]);
-    return presenceMap.get(Number(subjectId));
+
+    try {
+      const presenceMap = await robloxService.getPresence(cookie, [Number(subjectId)], 'interactive');
+      return presenceMap.get(Number(subjectId));
+    } catch (err) {
+      // Rate-limited or throttled: /history still renders, just without the
+      // live status line. Never let an optional lookup break the command.
+      console.warn(
+        `[Analytics] Live presence unavailable for ${subjectId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return null;
+    }
   },
 
   /**
