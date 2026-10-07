@@ -11,8 +11,8 @@ Long-polls Telegram via [grammY](https://grammy.dev), polls the Roblox API in ba
 - **Manual tracking** — `/track` / `/untrack` follow arbitrary Roblox users that are not friends. `Friend` and `TrackedUser` are deliberately kept separate.
 - **Presence polling** — every 15 s, batches presence for friends + tracked users (100 IDs/request), detects offline → online, online → offline, and game start/change transitions.
 - **Session history** — records lifecycle events only (start / change / end), never raw poll results. Both game sessions and presence sessions (offline/website/in-game/studio) carry computed durations.
-- **Notifications** — per-subject opt-in toggles for `online`, `offline`, and `game` events, with a 10 s debounce against state flicker. Includes a "Join Game" deep link when a server ID is known.
-- **Analytics** — `/status` (who is active now), `/stats` (playtime + presence breakdown over 7 d / 30 d / all time), `/history` (per-day sessions with pagination, or `all`), `/badges` (recent badges with award dates).
+- **Notifications** — per-subject toggles for `online`, `offline`, and `game` events, with a 10 s debounce against state flicker. Friends default to all-off (opt-in); tracked users default to `online` + `game` on, `offline` off. Includes a "Join Game" deep link when a place and server ID are known.
+- **Analytics** — `/status` (who is active now), `/stats` (playtime + presence breakdown over 7 d / 30 d / all time), `/history` (per-day sessions with pagination, or `all`), `/badges` (recent badges with award dates). `/status` reads the open `GameSession` / `PresenceSession` rows, so a session only appears once its *closing* poll writes `endTime` for the previous one — new sessions are appended asynchronously and may lag the current poll cycle.
 - **Admin view** — Telegram IDs in `ADMIN_USER_IDS` get the aggregate view across every connected account on `/status`, `/stats`, `/history`, and `/list`.
 
 ## Stack
@@ -28,7 +28,7 @@ Long-polls Telegram via [grammY](https://grammy.dev), polls the Roblox API in ba
 
 ## Requirements
 
-- Node.js 20+ (ESM throughout, `node:crypto`, `Intl` with the `Asia/Jakarta` time zone)
+- Node.js `^20.19 || ^22.12 || >=24.0` — the range Prisma 7 declares in its `engines` field (ESM throughout, `node:crypto`, `Intl` with the `Asia/Jakarta` time zone)
 - A MySQL-compatible database
 - A Telegram bot token from [@BotFather](https://t.me/BotFather)
 - One or more Roblox accounts whose `.ROBLOSECURITY` cookie can be provided
@@ -77,9 +77,9 @@ npm run dev
 | `/unnotify` | `/unnotify <username> [online\|offline\|game\|all]` | Disable notification filters |
 | `/stats` | `/stats [username] [7d\|30d\|all]` | Playtime and presence breakdown |
 | `/history` | `/history [username] [DD-MM-YYYY\|all]` | Session history, paginated inline |
-| `/badges` | `/badges [username]` | Recent badges with award dates; defaults to the connected account's own username. Paginated inline |
+| `/badges` | `/badges [username]` | Recent badges with award dates; defaults to the connected account's own username. For a target that is a friend of some connected account, the friend's cookie is preferred (friend-only badge visibility). Paginated inline via an in-memory cursor cache |
 
-`/start` and `/help` are the only commands that work without a connected account. `/setcookie` is what connects one. `/status`, `/stats`, `/history`, and `/list` bypass the account check for callers in `ADMIN_USER_IDS` and then aggregate across all connected accounts.
+`/start` and `/help` are the only commands that work without a connected account. `/setcookie` is what connects one. `/status`, `/stats`, `/history`, and `/list` bypass the account check for callers in `ADMIN_USER_IDS` and then aggregate across all connected accounts; `/track`, `/untrack`, `/notify`, `/unnotify`, `/sync`, and `/badges` always require a connected account, even for admins. `/list` also answers to `/tracked`.
 
 ## Architecture
 
