@@ -138,7 +138,7 @@ export const robloxService = {
           `[RobloxService] getUsersBatch batch failed: ${extractRobloxError(err)}`,
         );
       }
-      await sleep(1000);
+      await sleep(3000);
     }
 
     return results;
@@ -198,7 +198,7 @@ export const robloxService = {
           `[RobloxService] getPresence batch failed: ${extractRobloxError(err)}`,
         );
       }
-      await sleep(1000);
+      await sleep(3000);
     }
 
     return presenceMap;

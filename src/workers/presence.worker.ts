@@ -9,8 +9,8 @@ import { presenceService } from '../services/presence/presence.service.js';
 let intervalId: NodeJS.Timeout | null = null;
 let isPolling = false;
 
-// Interval configured per SKILL.md (10-20 seconds)
-const POLL_INTERVAL_MS = 15000;
+// Interval configured per SKILL.md (10-20 seconds), but increased to 30 seconds to prevent rate limits
+const POLL_INTERVAL_MS = 30000;
 
 export function startPresenceWorker(): void {
   if (intervalId) return;
