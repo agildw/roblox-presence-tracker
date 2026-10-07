@@ -39,6 +39,8 @@ export type TelegramUserMinAggregateOutputType = {
   telegramId: string | null
   username: string | null
   firstName: string | null
+  isDisabled: boolean | null
+  disabledAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -48,6 +50,8 @@ export type TelegramUserMaxAggregateOutputType = {
   telegramId: string | null
   username: string | null
   firstName: string | null
+  isDisabled: boolean | null
+  disabledAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -57,6 +61,8 @@ export type TelegramUserCountAggregateOutputType = {
   telegramId: number
   username: number
   firstName: number
+  isDisabled: number
+  disabledAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -76,6 +82,8 @@ export type TelegramUserMinAggregateInputType = {
   telegramId?: true
   username?: true
   firstName?: true
+  isDisabled?: true
+  disabledAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -85,6 +93,8 @@ export type TelegramUserMaxAggregateInputType = {
   telegramId?: true
   username?: true
   firstName?: true
+  isDisabled?: true
+  disabledAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -94,6 +104,8 @@ export type TelegramUserCountAggregateInputType = {
   telegramId?: true
   username?: true
   firstName?: true
+  isDisabled?: true
+  disabledAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -190,6 +202,8 @@ export type TelegramUserGroupByOutputType = {
   telegramId: string
   username: string | null
   firstName: string | null
+  isDisabled: boolean
+  disabledAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: TelegramUserCountAggregateOutputType | null
@@ -222,6 +236,8 @@ export type TelegramUserWhereInput = {
   telegramId?: Prisma.StringFilter<"TelegramUser"> | string
   username?: Prisma.StringNullableFilter<"TelegramUser"> | string | null
   firstName?: Prisma.StringNullableFilter<"TelegramUser"> | string | null
+  isDisabled?: Prisma.BoolFilter<"TelegramUser"> | boolean
+  disabledAt?: Prisma.DateTimeNullableFilter<"TelegramUser"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"TelegramUser"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"TelegramUser"> | Date | string
   robloxAccount?: Prisma.XOR<Prisma.RobloxAccountNullableScalarRelationFilter, Prisma.RobloxAccountWhereInput> | null
@@ -232,6 +248,8 @@ export type TelegramUserOrderByWithRelationInput = {
   telegramId?: Prisma.SortOrder
   username?: Prisma.SortOrderInput | Prisma.SortOrder
   firstName?: Prisma.SortOrderInput | Prisma.SortOrder
+  isDisabled?: Prisma.SortOrder
+  disabledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   robloxAccount?: Prisma.RobloxAccountOrderByWithRelationInput
@@ -246,6 +264,8 @@ export type TelegramUserWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.TelegramUserWhereInput | Prisma.TelegramUserWhereInput[]
   username?: Prisma.StringNullableFilter<"TelegramUser"> | string | null
   firstName?: Prisma.StringNullableFilter<"TelegramUser"> | string | null
+  isDisabled?: Prisma.BoolFilter<"TelegramUser"> | boolean
+  disabledAt?: Prisma.DateTimeNullableFilter<"TelegramUser"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"TelegramUser"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"TelegramUser"> | Date | string
   robloxAccount?: Prisma.XOR<Prisma.RobloxAccountNullableScalarRelationFilter, Prisma.RobloxAccountWhereInput> | null
@@ -256,6 +276,8 @@ export type TelegramUserOrderByWithAggregationInput = {
   telegramId?: Prisma.SortOrder
   username?: Prisma.SortOrderInput | Prisma.SortOrder
   firstName?: Prisma.SortOrderInput | Prisma.SortOrder
+  isDisabled?: Prisma.SortOrder
+  disabledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.TelegramUserCountOrderByAggregateInput
@@ -273,6 +295,8 @@ export type TelegramUserScalarWhereWithAggregatesInput = {
   telegramId?: Prisma.StringWithAggregatesFilter<"TelegramUser"> | string
   username?: Prisma.StringNullableWithAggregatesFilter<"TelegramUser"> | string | null
   firstName?: Prisma.StringNullableWithAggregatesFilter<"TelegramUser"> | string | null
+  isDisabled?: Prisma.BoolWithAggregatesFilter<"TelegramUser"> | boolean
+  disabledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"TelegramUser"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"TelegramUser"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"TelegramUser"> | Date | string
 }
@@ -281,6 +305,8 @@ export type TelegramUserCreateInput = {
   telegramId: string
   username?: string | null
   firstName?: string | null
+  isDisabled?: boolean
+  disabledAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   robloxAccount?: Prisma.RobloxAccountCreateNestedOneWithoutUserInput
@@ -291,6 +317,8 @@ export type TelegramUserUncheckedCreateInput = {
   telegramId: string
   username?: string | null
   firstName?: string | null
+  isDisabled?: boolean
+  disabledAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   robloxAccount?: Prisma.RobloxAccountUncheckedCreateNestedOneWithoutUserInput
@@ -300,6 +328,8 @@ export type TelegramUserUpdateInput = {
   telegramId?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  disabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   robloxAccount?: Prisma.RobloxAccountUpdateOneWithoutUserNestedInput
@@ -310,6 +340,8 @@ export type TelegramUserUncheckedUpdateInput = {
   telegramId?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  disabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   robloxAccount?: Prisma.RobloxAccountUncheckedUpdateOneWithoutUserNestedInput
@@ -320,6 +352,8 @@ export type TelegramUserCreateManyInput = {
   telegramId: string
   username?: string | null
   firstName?: string | null
+  isDisabled?: boolean
+  disabledAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -328,6 +362,8 @@ export type TelegramUserUpdateManyMutationInput = {
   telegramId?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  disabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -337,6 +373,8 @@ export type TelegramUserUncheckedUpdateManyInput = {
   telegramId?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  disabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -352,6 +390,8 @@ export type TelegramUserCountOrderByAggregateInput = {
   telegramId?: Prisma.SortOrder
   username?: Prisma.SortOrder
   firstName?: Prisma.SortOrder
+  isDisabled?: Prisma.SortOrder
+  disabledAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -365,6 +405,8 @@ export type TelegramUserMaxOrderByAggregateInput = {
   telegramId?: Prisma.SortOrder
   username?: Prisma.SortOrder
   firstName?: Prisma.SortOrder
+  isDisabled?: Prisma.SortOrder
+  disabledAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -374,6 +416,8 @@ export type TelegramUserMinOrderByAggregateInput = {
   telegramId?: Prisma.SortOrder
   username?: Prisma.SortOrder
   firstName?: Prisma.SortOrder
+  isDisabled?: Prisma.SortOrder
+  disabledAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -393,6 +437,14 @@ export type StringFieldUpdateOperationsInput = {
 
 export type NullableStringFieldUpdateOperationsInput = {
   set?: string | null
+}
+
+export type BoolFieldUpdateOperationsInput = {
+  set?: boolean
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
 }
 
 export type DateTimeFieldUpdateOperationsInput = {
@@ -425,6 +477,8 @@ export type TelegramUserCreateWithoutRobloxAccountInput = {
   telegramId: string
   username?: string | null
   firstName?: string | null
+  isDisabled?: boolean
+  disabledAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -434,6 +488,8 @@ export type TelegramUserUncheckedCreateWithoutRobloxAccountInput = {
   telegramId: string
   username?: string | null
   firstName?: string | null
+  isDisabled?: boolean
+  disabledAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -458,6 +514,8 @@ export type TelegramUserUpdateWithoutRobloxAccountInput = {
   telegramId?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  disabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -467,6 +525,8 @@ export type TelegramUserUncheckedUpdateWithoutRobloxAccountInput = {
   telegramId?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  disabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -478,6 +538,8 @@ export type TelegramUserSelect<ExtArgs extends runtime.Types.Extensions.Internal
   telegramId?: boolean
   username?: boolean
   firstName?: boolean
+  isDisabled?: boolean
+  disabledAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   robloxAccount?: boolean | Prisma.TelegramUser$robloxAccountArgs<ExtArgs>
@@ -490,11 +552,13 @@ export type TelegramUserSelectScalar = {
   telegramId?: boolean
   username?: boolean
   firstName?: boolean
+  isDisabled?: boolean
+  disabledAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type TelegramUserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "telegramId" | "username" | "firstName" | "createdAt" | "updatedAt", ExtArgs["result"]["telegramUser"]>
+export type TelegramUserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "telegramId" | "username" | "firstName" | "isDisabled" | "disabledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["telegramUser"]>
 export type TelegramUserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   robloxAccount?: boolean | Prisma.TelegramUser$robloxAccountArgs<ExtArgs>
 }
@@ -509,6 +573,8 @@ export type $TelegramUserPayload<ExtArgs extends runtime.Types.Extensions.Intern
     telegramId: string
     username: string | null
     firstName: string | null
+    isDisabled: boolean
+    disabledAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["telegramUser"]>
@@ -885,6 +951,8 @@ export interface TelegramUserFieldRefs {
   readonly telegramId: Prisma.FieldRef<"TelegramUser", 'String'>
   readonly username: Prisma.FieldRef<"TelegramUser", 'String'>
   readonly firstName: Prisma.FieldRef<"TelegramUser", 'String'>
+  readonly isDisabled: Prisma.FieldRef<"TelegramUser", 'Boolean'>
+  readonly disabledAt: Prisma.FieldRef<"TelegramUser", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"TelegramUser", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"TelegramUser", 'DateTime'>
 }

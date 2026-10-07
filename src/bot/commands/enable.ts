@@ -42,6 +42,11 @@ export function registerEnableCommand(bot: Bot): void {
 
       const enabledUser = await accountService.enableUser(telegramId);
       
+      if (!enabledUser) {
+        await ctx.reply(`❌ Could not find a user with ID ${telegramId}.`);
+        return;
+      }
+
       const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));
       const displayName = enabledUser.firstName || enabledUser.username || telegramId;
 
