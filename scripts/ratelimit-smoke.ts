@@ -346,7 +346,7 @@ console.log('\n── scheduling ──');
 console.log('\n── configuration ──');
 {
   check('env: presence batch size capped at 50', env.PRESENCE_BATCH_SIZE === 50, `${env.PRESENCE_BATCH_SIZE}`);
-  check('env: min request gap configured', env.ROBLOX_MIN_REQUEST_GAP_MS === 150, `${env.ROBLOX_MIN_REQUEST_GAP_MS}`);
+  check('env: min request gap defaults to off', env.ROBLOX_MIN_REQUEST_GAP_MS === 0, `${env.ROBLOX_MIN_REQUEST_GAP_MS}`);
   const batches = chunk(
     Array.from({ length: 137 }, (_, i) => i),
     env.PRESENCE_BATCH_SIZE,

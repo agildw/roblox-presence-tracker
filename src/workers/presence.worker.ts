@@ -16,10 +16,12 @@ import { env } from '../lib/env.js';
 import { describeCycleFailure, scheduleDelayMs } from '../lib/adaptive.js';
 import { robloxRateLimiter } from '../lib/ratelimit.js';
 import { presenceService } from '../services/presence/presence.service.js';
+import { authHealthService } from '../services/account/auth-health.service.js';
 
 let timer: NodeJS.Timeout | undefined = undefined;
 let running = false;
 let stopped = true;
+let authTimer: NodeJS.Timeout | undefined = undefined;
 
 export function startPresenceWorker(): void {
   if (running || timer) return;
@@ -27,16 +29,32 @@ export function startPresenceWorker(): void {
   stopped = false;
   console.log(
     `[Worker] Starting presence polling every ${env.PRESENCE_POLL_INTERVAL_MS / 1000}s ` +
-      `(min request gap ${env.ROBLOX_MIN_REQUEST_GAP_MS}ms)...`,
+      `(min request gap ${env.ROBLOX_MIN_REQUEST_GAP_MS}ms, auth check every ${env.AUTH_CHECK_INTERVAL_MS / 60000}m)...`,
   );
+  startAuthChecks();
   schedule(0);
 }
 
 export function stopPresenceWorker(): void {
   stopped = true;
   clearTimeout(timer);
+  clearInterval(authTimer);
   timer = undefined;
+  authTimer = undefined;
   console.log('[Worker] Presence polling stopped.');
+}
+
+/**
+ * Validates every stored cookie at startup and on a fixed interval. This is the
+ * check that catches a silently-expired cookie before it manifests as
+ * unexplained throttling (Roblox serves expired-cookie presence requests as
+ * anonymous, which is rate-limited far more aggressively).
+ */
+function startAuthChecks(): void {
+  void authHealthService.checkAll();
+  authTimer = setInterval(() => {
+    void authHealthService.checkAll();
+  }, env.AUTH_CHECK_INTERVAL_MS);
 }
 
 /** Schedules the next cycle after `delayMs`. */
@@ -67,6 +85,7 @@ async function runCycle(): Promise<void> {
       `[Worker] cycle completed: ${outcome.batchesApplied}/${outcome.batchesTotal} batches applied, ` +
         `took ${took.toFixed(1)}s${outcome.throttled ? ' (throttled)' : ''}` +
         `${outcome.unansweredIds > 0 ? `, ${outcome.unansweredIds} unanswered` : ''}` +
+        `${outcome.accountsSkippedUnauthenticated > 0 ? `, ${outcome.accountsSkippedUnauthenticated} account(s) skipped (cookie invalid)` : ''}` +
         robloxRateLimiter.describe(),
     );
   } catch (err) {

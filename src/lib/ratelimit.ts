@@ -1,21 +1,19 @@
 /**
  * Global rate limiter for every Roblox API request.
  *
- * Roblox throttles per IP *and* per session, and it rejects *bursts* outright:
- * measured live, four back-to-back presence requests are all rejected while the
- * same four spaced ~1 s apart succeed. Every Roblox call therefore funnels
- * through one shared limiter:
+ * Roblox applies a stricter, separate limit to *unauthenticated* traffic than to
+ * a logged-in session — which is why an expired cookie produces far more 429s
+ * than a valid one. Every Roblox call funnels through one shared limiter:
  *
  *  - **concurrency 1** — no two Roblox requests are ever in flight together
- *  - **minimum request gap** (`minGapMs`) — the *primary* admission control.
- *    Consecutive request *starts* are spaced by at least this much, even when
- *    tokens are available, so a cycle issues a paced trickle rather than a burst
- *  - **token bucket** (`maxRequestsPerMinute`) — a looser sustained ceiling on
- *    top of the gap
+ *  - **token bucket** (`maxRequestsPerMinute`) — a sustained ceiling on top of a
+ *    small burst allowance
+ *  - **optional minimum gap** (`minGapMs`, default 0 = off) — conservative extra
+ *    pacing between request *starts*, for when authenticated throttling is seen
  *  - **circuit breaker** — a 429 opens a global cooldown sized from
  *    `Retry-After` when present, otherwise a fixed base. It never doubles per
- *    consecutive 429, because Roblox's real penalty window is short and
- *    escalation is what pins the bot into permanent backoff
+ *    consecutive 429, because a stuck escalating cooldown is what once pinned the
+ *    bot into permanent backoff
  *  - **bounded waiting** — cycle requests give up quickly (their cycle ends and
  *    the worker reschedules); interactive command requests wait longer and jump
  *    the queue so a command is never starved by a poll cycle

@@ -24,6 +24,7 @@ import { robloxService } from '../roblox/roblox.service.js';
 import { accountService } from '../account/account.service.js';
 import { notificationService } from '../notification/notification.service.js';
 import { robloxRateLimiter } from '../../lib/ratelimit.js';
+import { authHealthService } from '../account/auth-health.service.js';
 import { sessionService } from '../session/session.service.js';
 import { presenceService } from './presence.service.js';
 import type { PresenceFetchResult } from '../roblox/roblox.service.js';
@@ -86,9 +87,11 @@ interface Recorder {
 function installStubs(
   fetch: PresenceFetchResult,
   friends: typeof ANSWERED_FRIEND[],
-  opts: { openCooldown?: boolean } = {},
+  opts: { openCooldown?: boolean; authInvalid?: boolean } = {},
 ): Recorder {
   const rec: Recorder = { notifications: [], updates: [], sessions: [] };
+
+  (authHealthService as unknown as Record<string, unknown>)['isInvalid'] = () => opts.authInvalid === true;
 
   const prismaAny = prisma as unknown as Record<string, Record<string, unknown>>;
   prismaAny['robloxAccount']!['findMany'] = async () => [
@@ -226,4 +229,20 @@ test('throttled partial cycle is reported as not clean', async () => {
   assert.equal(cycle.halted, true, 'a throttled cycle must halt');
   assert.equal(cycle.batchesTotal, 4);
   assert.equal(cycle.batchesApplied, 1);
+});
+
+test('a globally-invalid cookie skips the account without issuing any request', async () => {
+  const rec = installStubs(
+    partialFetch([presenceFor(1001, { userPresenceType: 1 })], 4),
+    [ANSWERED_FRIEND, UNANSWERED_FRIEND],
+    { authInvalid: true },
+  );
+
+  const cycle = await presenceService.pollAllPresence();
+
+  assert.equal(cycle.accountsSkippedUnauthenticated, 1);
+  assert.equal(cycle.accountsPolled, 0);
+  assert.equal(cycle.batchesTotal, 0, 'no batches may be attempted for an unauthenticated account');
+  assert.deepEqual(rec.notifications, [], 'anonymous results must not drive notifications');
+  assert.deepEqual(rec.updates, [], 'anonymous results must not be written');
 });

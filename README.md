@@ -65,9 +65,12 @@ Defaults suit a single connected account; the bot works unchanged without any of
 | `USER_BATCH_SIZE` | `100` | user IDs per `POST /v1/users` request. |
 | `ROBLOX_MAX_BATCHES_PER_CYCLE` | `8` | Batches one worker cycle may spend; the remainder follow next cycle. Tracked users occupy the earliest batches. |
 | `ROBLOX_MAX_REQUESTS_PER_MINUTE` | `30` | Sustained request ceiling shared by every Roblox call. |
-| `ROBLOX_MIN_REQUEST_GAP_MS` | `1500` | Minimum spacing between consecutive request **starts**. Primary burst protection — applied even when tokens are available. |
-| `ROBLOX_CYCLE_MAX_WAIT_MS` | `8000` | How long a worker-cycle request waits for a free slot before giving up. Must exceed the min request gap. |
+| `ROBLOX_MIN_REQUEST_GAP_MS` | `0` | Minimum spacing between consecutive request **starts**. Off by default; raise only if authenticated throttling is observed (adds command latency). |
+| `ROBLOX_CYCLE_MAX_WAIT_MS` | `5000` | How long a worker-cycle request waits for a free slot before giving up. |
 | `ROBLOX_INTERACTIVE_MAX_WAIT_MS` | `20000` | How long a command-driven request waits for a free slot. |
+| `AUTH_CHECK_INTERVAL_MS` | `900000` | How often the stored cookie is re-validated (15 min). |
+| `AUTH_ALERT_COOLDOWN_HOURS` | `6` | Minimum gap between invalid-cookie alerts per account. |
+| `ROBLOX_FORENSIC_LOG` | `false` | Emit one `[RBX]` line per Roblox request (investigations only). |
 | `ROBLOX_HTTP_MAX_RETRIES` | `3` | Retries after the first for 5xx / network failures. |
 | `ROBLOX_HTTP_BASE_DELAY_MS` | `1000` | Backoff base for 5xx / network failures (equal jitter applied). |
 | `ROBLOX_HTTP_MAX_429_RETRIES` | `2` | 429 retries for command-driven calls. Worker cycles never retry inline. |
@@ -182,13 +185,17 @@ Both workers are started by `src/index.ts` and stopped on `SIGINT`/`SIGTERM`. Ea
 All calls go through `services/roblox/roblox.service.ts`, which injects the cookie per request, returns typed results (never raw axios payloads), and routes every request through the process-wide limiter in `lib/ratelimit.ts`:
 
 - **concurrency 1** — one Roblox request in flight at a time, so presence and friend sync never race each other
-- **minimum request gap** — consecutive request *starts* are spaced (`ROBLOX_MIN_REQUEST_GAP_MS`, default 1.5 s) even when token-bucket tokens are available. This is the primary burst protection: Roblox rejects back-to-back requests while its advertised `x-ratelimit-remaining` still looks healthy, but accepts the same requests when spaced.
-- **token bucket** — a looser sustained ceiling (`ROBLOX_MAX_REQUESTS_PER_MINUTE`) on top of the gap
+- **token bucket** — a sustained ceiling (`ROBLOX_MAX_REQUESTS_PER_MINUTE`) with a small burst allowance
+- **optional minimum gap** — `ROBLOX_MIN_REQUEST_GAP_MS` spaces request *starts*; **off (0) by default**. Only raise it if authenticated throttling is observed, and note it adds latency to every command.
 - **circuit breaker** — a 429 opens a global cooldown sized from `Retry-After` when present, otherwise a fixed `ROBLOX_COOLDOWN_MS`. It does **not** escalate per consecutive 429, and a cycle is never started while a cooldown is active (the next poll is scheduled at `max(interval × multiplier, cooldownRemaining)`).
 - **throttle penalty** — drives the poll-interval slow-down only, and is cleared solely after a *whole* cycle completes without a 429
 - **bounded waiting** — cycle requests give up fast and their worker reschedules; command requests wait longer and jump the queue
 
-Presence batches are capped at 50 IDs (Roblox rejects more with HTTP 400); user lookups batch at 100. Worker cycles spend at most `ROBLOX_MAX_BATCHES_PER_CYCLE` batches per pass. `Retry-After` is honoured when Roblox sends it (it frequently omits it), and retries use exponential backoff with jitter. Endpoints used:
+Presence batches are capped at 50 IDs (Roblox rejects more with HTTP 400); user lookups batch at 100. Worker cycles spend at most `ROBLOX_MAX_BATCHES_PER_CYCLE` batches per pass. `Retry-After` is honoured when Roblox sends it (it frequently omits it), and retries use exponential backoff with jitter.
+
+**Auth health.** A stored cookie that has expired is not rejected by the presence endpoint — Roblox serves it as *anonymous*, under a much stricter limiter, which presents as unexplained 429s. The bot therefore validates the stored cookie against `/v1/users/authenticated` at startup, every `AUTH_CHECK_INTERVAL_MS`, and whenever a cycle is throttled. An invalid cookie pauses presence for that account, logs a clear error, and sends one owner/admin alert (rate-limited by `AUTH_ALERT_COOLDOWN_HOURS`); a fresh `/setcookie` resumes it. See [`docs/429-incident.md`](docs/429-incident.md).
+
+Endpoints used:
 
 - `GET users.roblox.com/v1/users/authenticated`
 - `GET friends.roblox.com/v1/users/{userId}/friends`

@@ -18,6 +18,7 @@ import { robloxService } from '../roblox/roblox.service.js';
 import { accountService } from '../account/account.service.js';
 import { notificationService } from '../notification/notification.service.js';
 import { sessionService } from '../session/session.service.js';
+import { authHealthService } from '../account/auth-health.service.js';
 import { robloxRateLimiter } from '../../lib/ratelimit.js';
 import { env } from '../../lib/env.js';
 import type { RobloxUserPresence } from '../roblox/roblox.types.js';
@@ -42,6 +43,8 @@ export interface PresenceAccountOutcome {
 export interface PresenceCycleOutcome {
   accountsTotal: number;
   accountsPolled: number;
+  /** Accounts skipped because their stored cookie is known invalid. */
+  accountsSkippedUnauthenticated: number;
   /** True when the cycle stopped early (throttled or started inside a cooldown). */
   halted: boolean;
   batchesApplied: number;
@@ -73,6 +76,7 @@ export const presenceService = {
     const cycle: PresenceCycleOutcome = {
       accountsTotal: accounts.length,
       accountsPolled: 0,
+      accountsSkippedUnauthenticated: 0,
       halted: false,
       batchesApplied: 0,
       batchesTotal: 0,
@@ -83,6 +87,14 @@ export const presenceService = {
     for (let i = 0; i < accounts.length; i++) {
       const account = accounts[i];
       if (!account) continue;
+
+      // An invalid cookie makes Roblox treat us as anonymous: presence still
+      // answers 200, but under the far stricter unauthenticated limiter. Skipping
+      // avoids both the throttling and acting on downgraded data.
+      if (authHealthService.isInvalid(account.id)) {
+        cycle.accountsSkippedUnauthenticated++;
+        continue;
+      }
 
       // Don't open work we already know will be refused: an active cooldown
       // means every request rejects immediately, so the cycle would do nothing.
@@ -109,6 +121,13 @@ export const presenceService = {
       if (remainingCooldown > 0) {
         cycle.halted = true;
         logSkippedAccounts(accounts.length - i - 1, remainingCooldown, 'halted');
+
+        // A 429 on authenticated traffic is the fingerprint of a silently
+        // expired cookie (Roblox downgrades us to the anonymous limiter), so
+        // validate now rather than waiting for the next scheduled check.
+        void authHealthService.checkAccount(account.id).catch((err) => {
+          console.error(`[PresenceService] Post-429 auth check failed for account ${account.id}:`, err);
+        });
         break;
       }
     }

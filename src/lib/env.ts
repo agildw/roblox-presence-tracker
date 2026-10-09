@@ -78,18 +78,23 @@ export const env = {
   /** Sustained request ceiling shared by every Roblox call. */
   ROBLOX_MAX_REQUESTS_PER_MINUTE: intEnv('ROBLOX_MAX_REQUESTS_PER_MINUTE', 30, { min: 1, max: 600 }),
   /**
-   * Minimum spacing between consecutive request starts (ms). This is the primary
-   * burst protection: Roblox rejects back-to-back requests even while its
-   * advertised `x-ratelimit-remaining` is healthy, but accepts the same requests
-   * when they are spaced. Applied even when token-bucket tokens are available.
+   * Minimum spacing between consecutive request *starts* (ms). Optional
+   * conservative pacing: `0` disables it (the default).
+   *
+   * The original justification for this knob — that Roblox rejects bursts — came
+   * from probes that were silently running unauthenticated because of an expired
+   * stored cookie, so it measured the anonymous limiter, not the bot's real one.
+   * With a valid cookie, 4 requests at 500ms spacing are accepted (10/10). Raise
+   * this only if authenticated throttling is observed again; it costs latency on
+   * every interactive command (`/sync`, `/badges`).
    */
-  ROBLOX_MIN_REQUEST_GAP_MS: intEnv('ROBLOX_MIN_REQUEST_GAP_MS', 1_500, { min: 0, max: 60_000 }),
+  ROBLOX_MIN_REQUEST_GAP_MS: intEnv('ROBLOX_MIN_REQUEST_GAP_MS', 0, { min: 0, max: 60_000 }),
   /**
    * Max time a background cycle request waits for a free slot before aborting.
-   * Must comfortably exceed `ROBLOX_MIN_REQUEST_GAP_MS`: a batch legitimately
-   * waits out the inter-request gap, and that wait is not queue saturation.
+   * Generous enough to sit out a cooldown tail without being mistaken for a
+   * saturated queue; only binds when a cooldown is already open.
    */
-  ROBLOX_CYCLE_MAX_WAIT_MS: intEnv('ROBLOX_CYCLE_MAX_WAIT_MS', 8_000, { min: 0 }),
+  ROBLOX_CYCLE_MAX_WAIT_MS: intEnv('ROBLOX_CYCLE_MAX_WAIT_MS', 5_000, { min: 0 }),
   /** Max time an interactive (command-driven) request waits for a free slot. */
   ROBLOX_INTERACTIVE_MAX_WAIT_MS: intEnv('ROBLOX_INTERACTIVE_MAX_WAIT_MS', 20_000, { min: 0 }),
 
@@ -108,8 +113,9 @@ export const env = {
   // ── Cooldown / circuit breaker ─────────────────────────────────────────────
   /**
    * Cooldown opened by a 429 when `Retry-After` is absent or shorter than this.
-   * Never doubles per consecutive 429: measured penalty windows are short, and
-   * escalation is what pinned the bot into permanent backoff.
+   * Never doubles per consecutive 429: a stuck escalating cooldown is what once
+   * pinned the bot into permanent backoff. With a valid cookie, 429s are rare, so
+   * this is a safety net rather than a routine path.
    */
   ROBLOX_COOLDOWN_MS: intEnv('ROBLOX_COOLDOWN_MS', 45_000, { min: 0 }),
   /** Hard ceiling for a cooldown, even when `Retry-After` asks for longer. */
@@ -122,7 +128,19 @@ export const env = {
    * Emit one `[RBX]` line per Roblox request: timestamp, label, gap since the
    * previous Roblox request, status, `Retry-After`, `x-ratelimit-*`, and
    * per-minute counts by endpoint. Logging only — never affects behaviour, and
-   * never emits credentials.
+   * never emits credentials. Off by default: it is one line per request, so
+   * enable it for an investigation, not in steady state.
    */
-  ROBLOX_FORENSIC_LOG: boolEnv('ROBLOX_FORENSIC_LOG', true),
+  ROBLOX_FORENSIC_LOG: boolEnv('ROBLOX_FORENSIC_LOG', false),
+
+  // ── Auth health ────────────────────────────────────────────────────────────
+  /**
+   * How often the stored `.ROBLOSECURITY` cookie is re-validated against
+   * `users.roblox.com/v1/users/authenticated`. An expired cookie silently makes
+   * presence requests anonymous, which is throttled far harder than
+   * authenticated traffic — this is the check that catches it.
+   */
+  AUTH_CHECK_INTERVAL_MS: intEnv('AUTH_CHECK_INTERVAL_MS', 15 * 60 * 1000, { min: 60_000 }),
+  /** Minimum gap between "cookie invalid" alerts for the same account. */
+  AUTH_ALERT_COOLDOWN_HOURS: intEnv('AUTH_ALERT_COOLDOWN_HOURS', 6, { min: 1, max: 720 }),
 } as const;
