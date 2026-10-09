@@ -3,9 +3,8 @@
  *
  * Run with:
  *   DOTENV_CONFIG_PATH=scripts/ratelimit-smoke.env npx tsx scripts/ratelimit-smoke.ts
- *
- * Configuration travels through DOTENV_CONFIG_PATH (read by `lib/env.ts` via
- * `dotenv/config`) so the imports below can stay static.
+ * or, portably:
+ *   node --env-file=scripts/ratelimit-smoke.env ./node_modules/tsx/dist/cli.mjs scripts/ratelimit-smoke.ts
  *
  * Section 1 exercises `RobloxRateLimiter` in isolation with explicit options.
  * Section 2 exercises the HTTP wrapper against the process-wide singleton.
@@ -19,7 +18,7 @@ import {
   type RateLimiterOptions,
 } from '../src/lib/ratelimit.js';
 import { robloxGet, robloxPost, createRobloxClient, chunk } from '../src/lib/http.js';
-import { adaptInterval } from '../src/lib/adaptive.js';
+import { scheduleDelayMs } from '../src/lib/adaptive.js';
 import { env } from '../src/lib/env.js';
 
 // ── Assertion helpers ─────────────────────────────────────────────────────────
@@ -34,16 +33,28 @@ const sleep = (ms: number): Promise<void> =>
     setTimeout(resolve, ms);
   });
 
+/**
+ * A promise plus its settle functions. Executor form deliberately:
+ * Promise.withResolvers() is ES2024 / Node 22+, and the project supports Node 20.
+ */
+function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
+  let resolve: (value: T) => void = () => undefined;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
 function makeLimiter(overrides: Partial<RateLimiterOptions> = {}): RobloxRateLimiter {
   return new RobloxRateLimiter({
     maxRequestsPerMinute: 6000,
     burstMax: 3,
+    minGapMs: 0,
     cycleMaxWaitMs: 3000,
     interactiveMaxWaitMs: 5000,
     cooldownMs: 300,
     cooldownMaxMs: 2000,
     adaptiveMaxMultiplier: 4,
-    adaptiveRecoverMs: 300,
     ...overrides,
   });
 }
@@ -99,31 +110,53 @@ console.log('\n── limiter semantics ──');
   check('concurrency: never more than one request in flight', peak === 1, `peak=${peak}`);
 }
 
-// 1b. Burst allowance, then sustained spacing.
+// 1b. Minimum request gap paces *starts* even when tokens are plentiful.
+// This is the Phase 1 primary fix: Roblox rejects bursts, not volume.
 {
-  const limiter = makeLimiter({ maxRequestsPerMinute: 600 });
-  const stamps: number[] = [];
+  const limiter = makeLimiter({ minGapMs: 150, burstMax: 10, maxRequestsPerMinute: 6000 });
+  const starts: number[] = [];
   await Promise.all(
     Array.from({ length: 4 }, () =>
       limiter.withSlot('cycle', async () => {
-        stamps.push(Date.now());
+        starts.push(Date.now());
+        await sleep(1);
       }),
     ),
   );
-  const spread = Math.max(...stamps) - Math.min(...stamps);
-  // burst = 3, so the 4th grant is spaced by 60000/600 = 100ms.
-  check('rate: burst of 3 then sustained spacing', spread >= 70 && spread < 1500, `spread=${spread}ms`);
+  starts.sort((a, b) => a - b);
+  const deltas = starts.slice(1).map((t, i) => t - (starts[i] ?? t));
+  const minDelta = Math.min(...deltas);
+  check(
+    'min gap: consecutive request starts are spaced despite spare tokens',
+    minDelta >= 130,
+    `min delta=${minDelta}ms deltas=[${deltas.join(',')}]`,
+  );
 }
 
-// 1c. Cycle request over its patience budget is rejected, not retried.
+// 1c. With the gap disabled, the bucket still absorbs a small burst (looser ceiling).
 {
-  const limiter = makeLimiter({ maxRequestsPerMinute: 60, burstMax: 1, cycleMaxWaitMs: 150 });
-  let release: () => void = () => undefined;
-  const gate = new Promise<void>((resolve) => {
-    release = resolve;
-  });
+  const limiter = makeLimiter({ minGapMs: 0, burstMax: 3, maxRequestsPerMinute: 600 });
+  const starts: number[] = [];
+  await Promise.all(
+    Array.from({ length: 4 }, () =>
+      limiter.withSlot('cycle', async () => {
+        starts.push(Date.now());
+        await sleep(1);
+      }),
+    ),
+  );
+  starts.sort((a, b) => a - b);
+  const spread = (starts.at(-1) ?? 0) - (starts[0] ?? 0);
+  // burst = 3 free, 4th spaced by 60000/600 = 100ms.
+  check('token bucket: absorbs burst then spaces the excess', spread >= 70 && spread < 1500, `spread=${spread}ms`);
+}
+
+// 1d. Cycle request over its patience budget is rejected, not retried.
+{
+  const limiter = makeLimiter({ minGapMs: 5000, burstMax: 1, cycleMaxWaitMs: 150 });
+  const gate = deferred<void>();
   const holder = limiter.withSlot('cycle', async () => {
-    await gate;
+    await gate.promise;
   });
 
   const t0 = Date.now();
@@ -134,14 +167,14 @@ console.log('\n── limiter semantics ──');
     reason = e instanceof RateLimitRejection ? e.reason : `unexpected:${String(e)}`;
   }
   const waited = Date.now() - t0;
-  release();
+  gate.resolve();
   await holder;
 
-  check('patience: saturated queue rejects with reason=timeout', reason === 'timeout', reason);
+  check('patience: waiting out the gap beyond the budget rejects as timeout', reason === 'timeout', reason);
   check('patience: rejection respects the cycle budget', waited < 400, `${waited}ms`);
 }
 
-// 1d. A 429 cooldown rejects cycle requests immediately.
+// 1e. A cooldown rejects cycle requests immediately.
 {
   const limiter = makeLimiter({ cooldownMs: 2000, cycleMaxWaitMs: 150 });
   limiter.reportRateLimit(0);
@@ -158,9 +191,25 @@ console.log('\n── limiter semantics ──');
   check('cooldown: rejection is immediate', waited < 300, `${waited}ms`);
 }
 
-// 1e. Retry-After raises the cooldown floor but an existing cooldown never shortens.
+// 1f. Cooldown is FLAT — no doubling per consecutive 429 (Phase 1 policy).
 {
-  const limiter = makeLimiter({ cooldownMs: 300 });
+  const limiter = makeLimiter({ cooldownMs: 300, cooldownMaxMs: 60_000 });
+  limiter.reportRateLimit(0);
+  const first = limiter.snapshot().cooldownRemainingMs;
+  limiter.reportRateLimit(0);
+  limiter.reportRateLimit(0);
+  const afterThree = limiter.snapshot().cooldownRemainingMs;
+  check('cooldown: first 429 opens the base cooldown', first > 250 && first <= 320, `${first}ms`);
+  check(
+    'cooldown: three consecutive 429s do NOT double the window',
+    afterThree < first * 1.5,
+    `first=${Math.round(first)}ms after3=${Math.round(afterThree)}ms`,
+  );
+}
+
+// 1g. Retry-After raises the floor; an existing cooldown is never shortened.
+{
+  const limiter = makeLimiter({ cooldownMs: 300, cooldownMaxMs: 60_000 });
   limiter.reportRateLimit(5000);
   const long = limiter.snapshot().cooldownRemainingMs;
   limiter.reportRateLimit(0);
@@ -169,46 +218,39 @@ console.log('\n── limiter semantics ──');
   check('cooldown: never shortened by a later 429', after > 3000, `${Math.round(after)}ms`);
 }
 
-// 1f. Penalty escalation, multiplier cap, and recovery.
+// 1h. Retry-After never exceeds the hard ceiling.
 {
-  const limiter = makeLimiter({ adaptiveRecoverMs: 300, adaptiveMaxMultiplier: 4 });
-  limiter.reportRateLimit(0);
-  const penalised = adaptInterval(10_000, limiter);
-  check('adaptive: interval stretched while penalised', penalised.multiplier > 1, `x${penalised.multiplier}`);
-
-  for (let i = 0; i < 8; i++) limiter.reportRateLimit(0);
-  const capped = limiter.intervalMultiplier();
-  check('adaptive: multiplier capped by option', capped <= 4, `x${capped}`);
-
-  // Recovery decays one level per adaptiveRecoverMs of clean uptime.
-  limiter.reportSuccess();
-  await sleep(360);
-  limiter.reportSuccess();
-  const level = limiter.snapshot().penaltyLevel;
-  check('adaptive: penalty decays after sustained success', level < 6, `level=${level}`);
-
-  // From a single 429 the multiplier itself returns to 1.
-  const single = makeLimiter({ adaptiveRecoverMs: 300 });
-  single.reportRateLimit(0);
-  single.reportSuccess();
-  await sleep(360);
-  single.reportSuccess();
-  const backToNormal = adaptInterval(10_000, single);
-  check('adaptive: multiplier returns to x1 after recovery', backToNormal.multiplier === 1, `x${backToNormal.multiplier}`);
+  const limiter = makeLimiter({ cooldownMs: 300, cooldownMaxMs: 2000 });
+  limiter.reportRateLimit(600_000);
+  const capped = limiter.snapshot().cooldownRemainingMs;
+  check('cooldown: Retry-After clamped by the ceiling', capped <= 2100, `${Math.round(capped)}ms`);
 }
 
-// 1g. Interactive requests preempt queued cycle work.
+// 1i. Penalty drives the interval multiplier and clears only on a clean cycle.
 {
-  const limiter = makeLimiter();
+  const limiter = makeLimiter({ adaptiveMaxMultiplier: 4 });
+  check('penalty: starts unthrottled', limiter.intervalMultiplier() === 1);
+
+  limiter.reportRateLimit(0);
+  check('penalty: 429 slows the poll interval', limiter.intervalMultiplier() === 2, `x${limiter.intervalMultiplier()}`);
+
+  for (let i = 0; i < 10; i++) limiter.reportRateLimit(0);
+  check('penalty: multiplier capped by option', limiter.intervalMultiplier() <= 4, `x${limiter.intervalMultiplier()}`);
+
+  limiter.reportCycleClean();
+  check('penalty: cleared by reportCycleClean', limiter.snapshot().penaltyLevel === 0);
+  check('penalty: multiplier back to x1 after a clean cycle', limiter.intervalMultiplier() === 1);
+}
+
+// 1j. Interactive requests preempt queued cycle work.
+{
+  const limiter = makeLimiter({ minGapMs: 0 });
   const order: string[] = [];
-  let release: () => void = () => undefined;
-  const gate = new Promise<void>((resolve) => {
-    release = resolve;
-  });
+  const gate = deferred<void>();
 
   const holder = limiter.withSlot('cycle', async () => {
     order.push('holder');
-    await gate;
+    await gate.promise;
   });
 
   await sleep(20);
@@ -221,7 +263,7 @@ console.log('\n── limiter semantics ──');
   });
 
   await sleep(20);
-  release();
+  gate.resolve();
   await Promise.allSettled([holder, queuedCycle, queuedInteractive]);
 
   const interactiveIdx = order.indexOf('interactive');
@@ -286,16 +328,35 @@ console.log('\n── http integration ──');
   check('limiter: cycle 429 opened a cooldown', after.cooldownRemainingMs > 0, `${Math.round(after.cooldownRemainingMs)}ms`);
 }
 
-// ═══ Section 3 — configuration and batching ══════════════════════════════════
+// ═══ Section 3 — scheduling and configuration ════════════════════════════════
+
+console.log('\n── scheduling ──');
+{
+  // Next cycle must wait out an active cooldown, never start inside it.
+  const limiter = makeLimiter({ cooldownMs: 5000, cooldownMaxMs: 60_000 });
+  limiter.reportRateLimit(0);
+  const plan = scheduleDelayMs(30_000, limiter);
+  check('scheduling: delay covers the remaining cooldown', plan.delayMs >= plan.cooldownRemainingMs, `${plan.delayMs}ms`);
+  check('scheduling: cooldown reported for logging', plan.cooldownRemainingMs > 4000, `${plan.cooldownRemainingMs}ms`);
+
+  const idle = scheduleDelayMs(30_000, makeLimiter());
+  check('scheduling: idle delay equals the base interval', idle.delayMs === 30_000, `${idle.delayMs}ms`);
+}
 
 console.log('\n── configuration ──');
 {
   check('env: presence batch size capped at 50', env.PRESENCE_BATCH_SIZE === 50, `${env.PRESENCE_BATCH_SIZE}`);
+  check('env: min request gap configured', env.ROBLOX_MIN_REQUEST_GAP_MS === 150, `${env.ROBLOX_MIN_REQUEST_GAP_MS}`);
   const batches = chunk(
     Array.from({ length: 137 }, (_, i) => i),
     env.PRESENCE_BATCH_SIZE,
   );
   check('batching: 137 ids -> 3 batches of <=50', batches.length === 3 && batches.every((b) => b.length <= 50));
+  check(
+    'sizing: 179 ids at a 1500ms default gap finish inside a 30s interval',
+    Math.ceil(179 / 50) * 1500 < 30_000,
+    `${Math.ceil(179 / 50) * 1500}ms`,
+  );
 }
 
 console.log(failures === 0 ? '\nALL CHECKS PASSED' : `\n${failures} CHECK(S) FAILED`);

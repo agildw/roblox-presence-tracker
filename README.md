@@ -65,17 +65,17 @@ Defaults suit a single connected account; the bot works unchanged without any of
 | `USER_BATCH_SIZE` | `100` | user IDs per `POST /v1/users` request. |
 | `ROBLOX_MAX_BATCHES_PER_CYCLE` | `8` | Batches one worker cycle may spend; the remainder follow next cycle. Tracked users occupy the earliest batches. |
 | `ROBLOX_MAX_REQUESTS_PER_MINUTE` | `30` | Sustained request ceiling shared by every Roblox call. |
-| `ROBLOX_CYCLE_MAX_WAIT_MS` | `5000` | How long a worker-cycle request waits for a free slot before giving up. |
+| `ROBLOX_MIN_REQUEST_GAP_MS` | `1500` | Minimum spacing between consecutive request **starts**. Primary burst protection — applied even when tokens are available. |
+| `ROBLOX_CYCLE_MAX_WAIT_MS` | `8000` | How long a worker-cycle request waits for a free slot before giving up. Must exceed the min request gap. |
 | `ROBLOX_INTERACTIVE_MAX_WAIT_MS` | `20000` | How long a command-driven request waits for a free slot. |
 | `ROBLOX_HTTP_MAX_RETRIES` | `3` | Retries after the first for 5xx / network failures. |
 | `ROBLOX_HTTP_BASE_DELAY_MS` | `1000` | Backoff base for 5xx / network failures (equal jitter applied). |
 | `ROBLOX_HTTP_MAX_429_RETRIES` | `2` | 429 retries for command-driven calls. Worker cycles never retry inline. |
 | `ROBLOX_RATE_LIMIT_BASE_DELAY_MS` | `10000` | Floor for the 429 backoff when `Retry-After` is absent. |
 | `ROBLOX_HTTP_MAX_DELAY_MS` | `60000` | Hard ceiling for any single retry delay. |
-| `ROBLOX_COOLDOWN_MS` | `60000` | Minimum global cooldown after a 429; doubles per consecutive 429. |
-| `ROBLOX_COOLDOWN_MAX_MS` | `600000` | Ceiling for the escalating cooldown. |
+| `ROBLOX_COOLDOWN_MS` | `45000` | Cooldown opened by a 429 when `Retry-After` is absent or shorter. **Never doubles** per consecutive 429. |
+| `ROBLOX_COOLDOWN_MAX_MS` | `600000` | Hard ceiling for a cooldown, even when `Retry-After` asks for longer. |
 | `ROBLOX_ADAPTIVE_MAX_MULTIPLIER` | `4` | Max poll slow-down factor while penalised. |
-| `ROBLOX_ADAPTIVE_RECOVER_MS` | `300000` | Clean uptime required before each penalty level is forgiven. |
 
 Rate-limit behaviour is covered by a self-contained harness (stubbed transport, no network, no DB):
 
@@ -83,6 +83,21 @@ Rate-limit behaviour is covered by a self-contained harness (stubbed transport, 
 DOTENV_CONFIG_PATH=scripts/ratelimit-smoke.env npx tsx scripts/ratelimit-smoke.ts
 # or, without cross-env:
 node --env-file=scripts/ratelimit-smoke.env ./node_modules/tsx/dist/cli.mjs scripts/ratelimit-smoke.ts
+```
+
+The partial-data invariant (a throttled poll must not fabricate offline/online events) is pinned by:
+
+```bash
+node --env-file=scripts/presence-invariant.env ./node_modules/tsx/dist/cli.mjs --test src/services/presence/presence.service.test.ts
+```
+
+To calibrate the endpoint's real admission control **on the host whose IP matters**:
+
+```bash
+# anonymous
+node scripts/presence-probe.mjs
+# plus authenticated (cookie read from env, never printed)
+ROBLOX_COOKIE='...' node scripts/presence-probe.mjs
 ```
 
 ## Scripts
@@ -159,7 +174,7 @@ prisma/
 
 Both workers are started by `src/index.ts` and stopped on `SIGINT`/`SIGTERM`. Each re-arms a single timer only after its cycle finishes, so cycles can never overlap, and the next interval stretches by the limiter's current slow-down factor when Roblox has throttled us.
 
-- **`presence.worker`** — 30 s base interval. `presenceService.pollAllPresence()` iterates connected accounts, decrypts the cookie, orders tracked users ahead of friends, dedupes the combined IDs, batches presence requests, and dispatches state changes. A throttled cycle halts for the remaining accounts and resumes after the cooldown.
+- **`presence.worker`** — 30 s base interval. `presenceService.pollAllPresence()` iterates connected accounts, decrypts the cookie, orders tracked users ahead of friends, dedupes the combined IDs, batches presence requests, and dispatches state changes. Each cycle emits one summary line — `cycle completed: N/M batches applied, took Xs` — so completed and halted cycles can be counted directly. A throttled cycle halts the remaining accounts, leaves unanswered users at their cached state, and resumes after the cooldown.
 - **`sync.worker`** — 20 min base interval. Runs a friend sync per account and messages the owner only when friends were actually added or removed. Like the presence worker, it stops further accounts once a 429 opens the shared cooldown.
 
 ### Roblox API usage
@@ -167,8 +182,10 @@ Both workers are started by `src/index.ts` and stopped on `SIGINT`/`SIGTERM`. Ea
 All calls go through `services/roblox/roblox.service.ts`, which injects the cookie per request, returns typed results (never raw axios payloads), and routes every request through the process-wide limiter in `lib/ratelimit.ts`:
 
 - **concurrency 1** — one Roblox request in flight at a time, so presence and friend sync never race each other
-- **token bucket** — sustained ceiling (`ROBLOX_MAX_REQUESTS_PER_MINUTE`) with a small burst allowance
-- **circuit breaker** — a 429 opens a global cooldown (escalating per consecutive 429, forgiving after clean uptime), so a single throttle stops every call instead of letting cycles pile up
+- **minimum request gap** — consecutive request *starts* are spaced (`ROBLOX_MIN_REQUEST_GAP_MS`, default 1.5 s) even when token-bucket tokens are available. This is the primary burst protection: Roblox rejects back-to-back requests while its advertised `x-ratelimit-remaining` still looks healthy, but accepts the same requests when spaced.
+- **token bucket** — a looser sustained ceiling (`ROBLOX_MAX_REQUESTS_PER_MINUTE`) on top of the gap
+- **circuit breaker** — a 429 opens a global cooldown sized from `Retry-After` when present, otherwise a fixed `ROBLOX_COOLDOWN_MS`. It does **not** escalate per consecutive 429, and a cycle is never started while a cooldown is active (the next poll is scheduled at `max(interval × multiplier, cooldownRemaining)`).
+- **throttle penalty** — drives the poll-interval slow-down only, and is cleared solely after a *whole* cycle completes without a 429
 - **bounded waiting** — cycle requests give up fast and their worker reschedules; command requests wait longer and jump the queue
 
 Presence batches are capped at 50 IDs (Roblox rejects more with HTTP 400); user lookups batch at 100. Worker cycles spend at most `ROBLOX_MAX_BATCHES_PER_CYCLE` batches per pass. `Retry-After` is honoured when Roblox sends it (it frequently omits it), and retries use exponential backoff with jitter. Endpoints used:

@@ -5,12 +5,15 @@
  *
  * The loop re-arms itself one timer at a time instead of using `setInterval`:
  * the next tick is scheduled only after the current cycle finishes, so a cycle
- * can never overlap another one, and a cycle that trips a 429 backs off by the
- * shared cooldown rather than hammering the API on a fixed cadence.
+ * can never overlap another one.
+ *
+ * Scheduling honours the shared cooldown: the next cycle starts at
+ * `max(interval × multiplier, cooldownRemaining)`, so a cycle is never opened
+ * while Roblox is still throttling us — that only burned a cycle for zero data.
  */
 
 import { env } from '../lib/env.js';
-import { adaptInterval, describeCycleFailure } from '../lib/adaptive.js';
+import { describeCycleFailure, scheduleDelayMs } from '../lib/adaptive.js';
 import { robloxRateLimiter } from '../lib/ratelimit.js';
 import { presenceService } from '../services/presence/presence.service.js';
 
@@ -22,7 +25,10 @@ export function startPresenceWorker(): void {
   if (running || timer) return;
 
   stopped = false;
-  console.log(`[Worker] Starting presence polling every ${env.PRESENCE_POLL_INTERVAL_MS / 1000}s...`);
+  console.log(
+    `[Worker] Starting presence polling every ${env.PRESENCE_POLL_INTERVAL_MS / 1000}s ` +
+      `(min request gap ${env.ROBLOX_MIN_REQUEST_GAP_MS}ms)...`,
+  );
   schedule(0);
 }
 
@@ -47,28 +53,40 @@ async function runCycle(): Promise<void> {
   running = true;
 
   const startedAt = Date.now();
-  try {
-    await presenceService.pollAllPresence();
+  let cleanCycle = false;
 
-    const took = Date.now() - startedAt;
-    if (took > env.PRESENCE_POLL_INTERVAL_MS) {
-      console.warn(
-        `[Worker] Presence poll took ${(took / 1000).toFixed(1)}s, longer than the ` +
-          `${env.PRESENCE_POLL_INTERVAL_MS / 1000}s base interval. Next poll starts when this one finishes.`,
-      );
-    }
+  try {
+    const outcome = await presenceService.pollAllPresence();
+    const took = (Date.now() - startedAt) / 1000;
+
+    // A cycle is clean when it was not throttled and nothing was left unpolled.
+    cleanCycle = !outcome.throttled && !outcome.halted;
+    if (cleanCycle) robloxRateLimiter.reportCycleClean();
+
+    console.log(
+      `[Worker] cycle completed: ${outcome.batchesApplied}/${outcome.batchesTotal} batches applied, ` +
+        `took ${took.toFixed(1)}s${outcome.throttled ? ' (throttled)' : ''}` +
+        `${outcome.unansweredIds > 0 ? `, ${outcome.unansweredIds} unanswered` : ''}` +
+        robloxRateLimiter.describe(),
+    );
   } catch (err) {
     console.error(`[Worker] Presence poll failed: ${describeCycleFailure(err)}`);
   } finally {
     running = false;
   }
 
-  const { intervalMs, multiplier } = adaptInterval(env.PRESENCE_POLL_INTERVAL_MS, robloxRateLimiter);
-  if (multiplier > 1) {
+  const { delayMs, multiplier, cooldownRemainingMs } = scheduleDelayMs(env.PRESENCE_POLL_INTERVAL_MS, robloxRateLimiter);
+
+  if (cooldownRemainingMs > delayMs) {
     console.log(
-      `[Worker] Next presence poll in ${(intervalMs / 1000).toFixed(1)}s ` +
+      `[Worker] Next presence poll in ${(delayMs / 1000).toFixed(1)}s ` +
+        `(waiting out ${(cooldownRemainingMs / 1000).toFixed(1)}s cooldown).`,
+    );
+  } else if (multiplier > 1) {
+    console.log(
+      `[Worker] Next presence poll in ${(delayMs / 1000).toFixed(1)}s ` +
         `(base ${env.PRESENCE_POLL_INTERVAL_MS / 1000}s, ×${multiplier.toFixed(1)}).`,
     );
   }
-  schedule(intervalMs);
+  schedule(delayMs);
 }

@@ -1,25 +1,34 @@
 /**
  * Adaptive polling helper.
  *
- * When the limiter reports throttling, the base poll/sync interval is stretched
- * by the limiter's current slow-down multiplier — and stretched only once,
- * because the factor is a property of the limiter rather than something this
- * helper accumulates.
+ * The throttle penalty is owned by the limiter and cleared only after a clean
+ * cycle (`reportCycleClean`), so these helpers stay pure lookups.
  */
 
 import type { RobloxRateLimiter } from './ratelimit.js';
 import { RateLimitRejection } from './ratelimit.js';
 
-/**
- * Applies the limiter's current slow-down factor to a base interval.
- * Returns both the adapted interval and the factor for logging.
- */
+/** Applies the limiter's current slow-down factor to a base interval. */
 export function adaptInterval(
   baseMs: number,
   limiter: RobloxRateLimiter,
 ): { intervalMs: number; multiplier: number } {
   const multiplier = limiter.intervalMultiplier();
   return { intervalMs: Math.round(baseMs * multiplier), multiplier };
+}
+
+/**
+ * How long to wait before the next cycle: the adaptive interval, but never
+ * shorter than the limiter's remaining cooldown. Starting a cycle inside a
+ * cooldown only burns a cycle and produces a zero-data poll.
+ */
+export function scheduleDelayMs(
+  baseMs: number,
+  limiter: RobloxRateLimiter,
+): { delayMs: number; multiplier: number; cooldownRemainingMs: number } {
+  const { intervalMs, multiplier } = adaptInterval(baseMs, limiter);
+  const cooldownRemainingMs = limiter.snapshot().cooldownRemainingMs;
+  return { delayMs: Math.max(intervalMs, cooldownRemainingMs), multiplier, cooldownRemainingMs };
 }
 
 /**

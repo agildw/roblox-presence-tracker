@@ -64,8 +64,19 @@ export const env = {
   // ── Global rate limiter ────────────────────────────────────────────────────
   /** Sustained request ceiling shared by every Roblox call. */
   ROBLOX_MAX_REQUESTS_PER_MINUTE: intEnv('ROBLOX_MAX_REQUESTS_PER_MINUTE', 30, { min: 1, max: 600 }),
-  /** Max time a background cycle request waits for a free slot before aborting. */
-  ROBLOX_CYCLE_MAX_WAIT_MS: intEnv('ROBLOX_CYCLE_MAX_WAIT_MS', 5_000, { min: 0 }),
+  /**
+   * Minimum spacing between consecutive request starts (ms). This is the primary
+   * burst protection: Roblox rejects back-to-back requests even while its
+   * advertised `x-ratelimit-remaining` is healthy, but accepts the same requests
+   * when they are spaced. Applied even when token-bucket tokens are available.
+   */
+  ROBLOX_MIN_REQUEST_GAP_MS: intEnv('ROBLOX_MIN_REQUEST_GAP_MS', 1_500, { min: 0, max: 60_000 }),
+  /**
+   * Max time a background cycle request waits for a free slot before aborting.
+   * Must comfortably exceed `ROBLOX_MIN_REQUEST_GAP_MS`: a batch legitimately
+   * waits out the inter-request gap, and that wait is not queue saturation.
+   */
+  ROBLOX_CYCLE_MAX_WAIT_MS: intEnv('ROBLOX_CYCLE_MAX_WAIT_MS', 8_000, { min: 0 }),
   /** Max time an interactive (command-driven) request waits for a free slot. */
   ROBLOX_INTERACTIVE_MAX_WAIT_MS: intEnv('ROBLOX_INTERACTIVE_MAX_WAIT_MS', 20_000, { min: 0 }),
 
@@ -83,14 +94,13 @@ export const env = {
 
   // ── Cooldown / circuit breaker ─────────────────────────────────────────────
   /**
-   * Minimum global cooldown after a 429. Roblox often omits Retry-After and the
-   * penalty outlives a short one, so this is the effective quarantine window.
+   * Cooldown opened by a 429 when `Retry-After` is absent or shorter than this.
+   * Never doubles per consecutive 429: measured penalty windows are short, and
+   * escalation is what pinned the bot into permanent backoff.
    */
-  ROBLOX_COOLDOWN_MS: intEnv('ROBLOX_COOLDOWN_MS', 60_000, { min: 0 }),
-  /** Upper bound for the escalated cooldown (penalty level multiplies up to this). */
+  ROBLOX_COOLDOWN_MS: intEnv('ROBLOX_COOLDOWN_MS', 45_000, { min: 0 }),
+  /** Hard ceiling for a cooldown, even when `Retry-After` asks for longer. */
   ROBLOX_COOLDOWN_MAX_MS: intEnv('ROBLOX_COOLDOWN_MAX_MS', 10 * 60 * 1000, { min: 1_000 }),
   /** Max slow-down multiplier applied to the poll interval while penalised. */
   ROBLOX_ADAPTIVE_MAX_MULTIPLIER: intEnv('ROBLOX_ADAPTIVE_MAX_MULTIPLIER', 4, { min: 1, max: 64 }),
-  /** Clean uptime required before each penalty level is forgiven. */
-  ROBLOX_ADAPTIVE_RECOVER_MS: intEnv('ROBLOX_ADAPTIVE_RECOVER_MS', 5 * 60 * 1000, { min: 1_000 }),
 } as const;

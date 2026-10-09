@@ -9,6 +9,8 @@
  *
  * If Roblox throttles mid-cycle, the cycle stops for the remaining accounts and
  * the worker reschedules after the shared cooldown — it never retries in place.
+ * A cycle is also never *started* while a cooldown is active: that only burned a
+ * cycle and produced a zero-data poll.
  */
 
 import { prisma } from '../../lib/prisma.js';
@@ -20,11 +22,44 @@ import { robloxRateLimiter } from '../../lib/ratelimit.js';
 import { env } from '../../lib/env.js';
 import type { RobloxUserPresence } from '../roblox/roblox.types.js';
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+/** Per-account result of one presence poll. */
+export interface PresenceAccountOutcome {
+  /** Batches that returned data this poll. */
+  batchesApplied: number;
+  /** Batches the poll intended to issue. */
+  batchesTotal: number;
+  /** Requested ids with no presence record returned. */
+  unansweredIds: number;
+  /** True when the poll stopped early because Roblox throttled us. */
+  throttled: boolean;
+  /** True when there was nothing to poll (no cookie or no subjects). */
+  skipped: boolean;
+}
+
+/** Aggregated result of one full presence cycle, for the worker's log line. */
+export interface PresenceCycleOutcome {
+  accountsTotal: number;
+  accountsPolled: number;
+  /** True when the cycle stopped early (throttled or started inside a cooldown). */
+  halted: boolean;
+  batchesApplied: number;
+  batchesTotal: number;
+  unansweredIds: number;
+  throttled: boolean;
+}
+
+// ── Service ───────────────────────────────────────────────────────────────────
+
 export const presenceService = {
   /**
    * Polls presence for all accounts and detects changes.
+   *
+   * Returns an aggregate outcome so the worker can log one summary line and
+   * decide whether the cycle was clean (used to reset the throttle penalty).
    */
-  async pollAllPresence(): Promise<void> {
+  async pollAllPresence(): Promise<PresenceCycleOutcome> {
     // 1. Fetch all connected accounts
     const accounts = await prisma.robloxAccount.findMany({
       where: {
@@ -35,36 +70,61 @@ export const presenceService = {
       },
     });
 
+    const cycle: PresenceCycleOutcome = {
+      accountsTotal: accounts.length,
+      accountsPolled: 0,
+      halted: false,
+      batchesApplied: 0,
+      batchesTotal: 0,
+      unansweredIds: 0,
+      throttled: false,
+    };
+
     for (let i = 0; i < accounts.length; i++) {
       const account = accounts[i];
       if (!account) continue;
 
+      // Don't open work we already know will be refused: an active cooldown
+      // means every request rejects immediately, so the cycle would do nothing.
+      const cooldown = robloxRateLimiter.snapshot().cooldownRemainingMs;
+      if (cooldown > 0) {
+        cycle.halted = true;
+        logSkippedAccounts(accounts.length - i, cooldown, 'not started');
+        break;
+      }
+
       try {
-        await this.pollAccountPresence(account, account.user.telegramId);
+        const result = await this.pollAccountPresence(account, account.user.telegramId);
+        cycle.accountsPolled++;
+        cycle.batchesApplied += result.batchesApplied;
+        cycle.batchesTotal += result.batchesTotal;
+        cycle.unansweredIds += result.unansweredIds;
+        cycle.throttled ||= result.throttled;
       } catch (err) {
         console.error(`[PresenceService] Failed to poll for account ${account.robloxUserId}:`, err);
       }
 
-      // Throttled: stop the cycle instead of queueing more doomed requests.
-      const cooldown = robloxRateLimiter.snapshot().cooldownRemainingMs;
-      if (cooldown > 0) {
-        console.warn(
-          `[PresenceService] Cycle halted: Roblox cooldown active, ${Math.ceil(cooldown / 1000)}s remaining.` +
-            ` Skipping ${accounts.length - i - 1} remaining account(s) this cycle.` +
-            robloxRateLimiter.describe(),
-        );
+      // Throttled mid-cycle: stop instead of queueing more doomed requests.
+      const remainingCooldown = robloxRateLimiter.snapshot().cooldownRemainingMs;
+      if (remainingCooldown > 0) {
+        cycle.halted = true;
+        logSkippedAccounts(accounts.length - i - 1, remainingCooldown, 'halted');
         break;
       }
     }
+
+    return cycle;
   },
 
   async pollAccountPresence(
     account: { id: number; robloxUserId: bigint },
     telegramId: string
-  ): Promise<void> {
+  ): Promise<PresenceAccountOutcome> {
     // Get decrypted cookie
     const cookie = await accountService.getDecryptedCookie(telegramId);
-    if (!cookie) return;
+    if (!cookie) {
+      return { batchesApplied: 0, batchesTotal: 0, unansweredIds: 0, throttled: false, skipped: true };
+    }
 
     // Fetch friends and tracked users to poll
     const [friends, trackedUsers] = await Promise.all([
@@ -85,7 +145,9 @@ export const presenceService = {
     }
 
     const uniqueUserIds = Array.from(userMap.keys());
-    if (uniqueUserIds.length === 0) return;
+    if (uniqueUserIds.length === 0) {
+      return { batchesApplied: 0, batchesTotal: 0, unansweredIds: 0, throttled: false, skipped: true };
+    }
 
     // Convert bigints to number for the API call (safe as long as it fits in JS number/safe int, standard for roblox API)
     const numericIds = uniqueUserIds.map((id) => Number(id));
@@ -97,23 +159,55 @@ export const presenceService = {
         `in ${batchCount} batch(es).${robloxRateLimiter.describe()}`,
     );
 
-    const presenceMap = await robloxService.getPresence(cookie, numericIds);
+    const fetch = await robloxService.getPresence(cookie, numericIds);
 
-    if (presenceMap.size === 0 && numericIds.length > 0) {
-      console.warn(
-        `[PresenceService] No presence data returned for account ${account.robloxUserId} ` +
-          `(${numericIds.length} requested).${robloxRateLimiter.describe()}`,
-      );
-      return;
+    const outcome: PresenceAccountOutcome = {
+      batchesApplied: fetch.batchesSucceeded,
+      batchesTotal: fetch.batchesTotal,
+      unansweredIds: fetch.unansweredIds,
+      throttled: fetch.throttled,
+      skipped: false,
+    };
+
+    // ══ PARTIAL-DATA INVARIANT ═══════════════════════════════════════════════
+    // Iterate `fetch.presence` (only users Roblox actually answered for) — NEVER
+    // `numericIds` / `userMap`. A user with no entry was NOT answered, and
+    // treating that absence as "offline" would emit a false went-offline
+    // notification and write a bogus state transition. Unanswered users must
+    // keep their cached state untouched so the next successful poll compares
+    // against real data.
+    // ═════════════════════════════════════════════════════════════════════════
+    if (fetch.presence.size === 0) {
+      if (fetch.throttled) {
+        console.log(
+          `[PresenceService] Account ${account.robloxUserId}: no presence data this cycle ` +
+            `(throttled); cached state left untouched for ${numericIds.length} user(s).${robloxRateLimiter.describe()}`,
+        );
+      } else {
+        console.warn(
+          `[PresenceService] No presence data returned for account ${account.robloxUserId} ` +
+            `(${numericIds.length} requested).${robloxRateLimiter.describe()}`,
+        );
+      }
+      return outcome;
     }
 
-    for (const [userIdNum, newPresence] of presenceMap.entries()) {
+    for (const [userIdNum, newPresence] of fetch.presence.entries()) {
       const userId = BigInt(userIdNum);
       const cached = userMap.get(userId);
       if (!cached) continue;
 
       await this.compareAndHandleChanges(telegramId, account.id, cached.id, userId, cached.type, cached, newPresence);
     }
+
+    if (outcome.unansweredIds > 0) {
+      console.warn(
+        `[PresenceService] Account ${account.robloxUserId}: applied ${outcome.batchesApplied}/${outcome.batchesTotal} ` +
+          `batches, ${outcome.unansweredIds} unanswered id(s) left at their cached state.${robloxRateLimiter.describe()}`,
+      );
+    }
+
+    return outcome;
   },
 
   async compareAndHandleChanges(
@@ -211,3 +305,19 @@ export const presenceService = {
     }
   },
 };
+
+/**
+ * Info-level notice that accounts were left unpolled. Silent when there are
+ * none, so a single-account setup does not log "Skipping 0 account(s)".
+ */
+function logSkippedAccounts(count: number, cooldownMs: number, cause: 'halted' | 'not started'): void {
+  const reason = `Roblox cooldown active for another ${Math.ceil(cooldownMs / 1000)}s`;
+  if (count <= 0) {
+    console.log(`[PresenceService] Cycle ${cause}: ${reason}.${robloxRateLimiter.describe()}`);
+    return;
+  }
+  console.log(
+    `[PresenceService] Cycle ${cause}: ${reason}. Skipping ${count} account(s) this cycle.` +
+      robloxRateLimiter.describe(),
+  );
+}

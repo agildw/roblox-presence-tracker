@@ -128,7 +128,10 @@ export async function robloxRequest<T>(
       continue;
     }
 
-    robloxRateLimiter.reportSuccess();
+    // NOTE: do not touch the throttle penalty here. The penalty is reset only by
+    // `robloxRateLimiter.reportCycleClean()` after a *whole* cycle completes
+    // without a 429; clearing it on a single 200 would let the interval
+    // multiplier oscillate on a lucky request.
     return data as T;
   }
 }
