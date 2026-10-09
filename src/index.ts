@@ -2,9 +2,11 @@ import { createBot } from './bot/index.js';
 import { prisma } from './lib/prisma.js';
 import { startPresenceWorker, stopPresenceWorker } from './workers/presence.worker.js';
 import { startSyncWorker, stopSyncWorker } from './workers/sync.worker.js';
+import { describeRobloxForensicsSettings } from './lib/roblox-forensics.js';
 
 async function main(): Promise<void> {
   console.log('[App] Starting Roblox Tracker Bot...');
+  console.log(`[App] Roblox client: ${describeRobloxForensicsSettings()}`);
 
   // Verify DB connection on startup
   await prisma.$connect();

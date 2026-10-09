@@ -37,6 +37,19 @@ function intEnv(
   return parsed;
 }
 
+/** Parses an optional boolean env var (`1/true/yes/on` vs `0/false/no/off`). */
+function boolEnv(key: string, fallback: boolean): boolean {
+  const raw = process.env[key];
+  if (raw === undefined || raw.trim() === '') return fallback;
+
+  const normalized = raw.trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+
+  console.warn(`[Env] ${key}="${raw}" is not a boolean; using default ${fallback}.`);
+  return fallback;
+}
+
 export const env = {
   BOT_TOKEN: requireEnv('BOT_TOKEN'),
   DATABASE_URL: requireEnv('DATABASE_URL'),
@@ -64,7 +77,23 @@ export const env = {
   // ── Global rate limiter ────────────────────────────────────────────────────
   /** Sustained request ceiling shared by every Roblox call. */
   ROBLOX_MAX_REQUESTS_PER_MINUTE: intEnv('ROBLOX_MAX_REQUESTS_PER_MINUTE', 30, { min: 1, max: 600 }),
-  /** Max time a background cycle request waits for a free slot before aborting. */
+  /**
+   * Minimum spacing between consecutive request *starts* (ms). Optional
+   * conservative pacing: `0` disables it (the default).
+   *
+   * The original justification for this knob — that Roblox rejects bursts — came
+   * from probes that were silently running unauthenticated because of an expired
+   * stored cookie, so it measured the anonymous limiter, not the bot's real one.
+   * With a valid cookie, 4 requests at 500ms spacing are accepted (10/10). Raise
+   * this only if authenticated throttling is observed again; it costs latency on
+   * every interactive command (`/sync`, `/badges`).
+   */
+  ROBLOX_MIN_REQUEST_GAP_MS: intEnv('ROBLOX_MIN_REQUEST_GAP_MS', 0, { min: 0, max: 60_000 }),
+  /**
+   * Max time a background cycle request waits for a free slot before aborting.
+   * Generous enough to sit out a cooldown tail without being mistaken for a
+   * saturated queue; only binds when a cooldown is already open.
+   */
   ROBLOX_CYCLE_MAX_WAIT_MS: intEnv('ROBLOX_CYCLE_MAX_WAIT_MS', 5_000, { min: 0 }),
   /** Max time an interactive (command-driven) request waits for a free slot. */
   ROBLOX_INTERACTIVE_MAX_WAIT_MS: intEnv('ROBLOX_INTERACTIVE_MAX_WAIT_MS', 20_000, { min: 0 }),
@@ -83,14 +112,35 @@ export const env = {
 
   // ── Cooldown / circuit breaker ─────────────────────────────────────────────
   /**
-   * Minimum global cooldown after a 429. Roblox often omits Retry-After and the
-   * penalty outlives a short one, so this is the effective quarantine window.
+   * Cooldown opened by a 429 when `Retry-After` is absent or shorter than this.
+   * Never doubles per consecutive 429: a stuck escalating cooldown is what once
+   * pinned the bot into permanent backoff. With a valid cookie, 429s are rare, so
+   * this is a safety net rather than a routine path.
    */
-  ROBLOX_COOLDOWN_MS: intEnv('ROBLOX_COOLDOWN_MS', 60_000, { min: 0 }),
-  /** Upper bound for the escalated cooldown (penalty level multiplies up to this). */
+  ROBLOX_COOLDOWN_MS: intEnv('ROBLOX_COOLDOWN_MS', 45_000, { min: 0 }),
+  /** Hard ceiling for a cooldown, even when `Retry-After` asks for longer. */
   ROBLOX_COOLDOWN_MAX_MS: intEnv('ROBLOX_COOLDOWN_MAX_MS', 10 * 60 * 1000, { min: 1_000 }),
   /** Max slow-down multiplier applied to the poll interval while penalised. */
   ROBLOX_ADAPTIVE_MAX_MULTIPLIER: intEnv('ROBLOX_ADAPTIVE_MAX_MULTIPLIER', 4, { min: 1, max: 64 }),
-  /** Clean uptime required before each penalty level is forgiven. */
-  ROBLOX_ADAPTIVE_RECOVER_MS: intEnv('ROBLOX_ADAPTIVE_RECOVER_MS', 5 * 60 * 1000, { min: 1_000 }),
+
+  // ── Diagnostics ────────────────────────────────────────────────────────────
+  /**
+   * Emit one `[RBX]` line per Roblox request: timestamp, label, gap since the
+   * previous Roblox request, status, `Retry-After`, `x-ratelimit-*`, and
+   * per-minute counts by endpoint. Logging only — never affects behaviour, and
+   * never emits credentials. Off by default: it is one line per request, so
+   * enable it for an investigation, not in steady state.
+   */
+  ROBLOX_FORENSIC_LOG: boolEnv('ROBLOX_FORENSIC_LOG', false),
+
+  // ── Auth health ────────────────────────────────────────────────────────────
+  /**
+   * How often the stored `.ROBLOSECURITY` cookie is re-validated against
+   * `users.roblox.com/v1/users/authenticated`. An expired cookie silently makes
+   * presence requests anonymous, which is throttled far harder than
+   * authenticated traffic — this is the check that catches it.
+   */
+  AUTH_CHECK_INTERVAL_MS: intEnv('AUTH_CHECK_INTERVAL_MS', 15 * 60 * 1000, { min: 60_000 }),
+  /** Minimum gap between "cookie invalid" alerts for the same account. */
+  AUTH_ALERT_COOLDOWN_HOURS: intEnv('AUTH_ALERT_COOLDOWN_HOURS', 6, { min: 1, max: 720 }),
 } as const;

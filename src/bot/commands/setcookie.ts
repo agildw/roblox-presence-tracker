@@ -14,6 +14,7 @@
 
 import type { Bot } from 'grammy';
 import { accountService } from '../../services/account/account.service.js';
+import { authHealthService } from '../../services/account/auth-health.service.js';
 import { syncService } from '../../services/sync/sync.service.js';
 import { RobloxApiError } from '../../services/roblox/roblox.service.js';
 
@@ -58,6 +59,10 @@ export function registerSetCookieCommand(bot: Bot): void {
         telegramUser,
         cookie,
       );
+
+      // A freshly validated cookie clears any "invalid" state so presence
+      // polling resumes immediately instead of waiting for the next check.
+      authHealthService.markValid(account.id);
 
       const greeting = isNew ? '✅ Account connected!' : '✅ Account updated!';
       const escapeHtml = (text: string) => text.replace(/[<>&]/g, (m) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[m] as string));

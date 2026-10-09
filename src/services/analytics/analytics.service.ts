@@ -323,8 +323,8 @@ export const analyticsService = {
     if (!cookie) return null;
 
     try {
-      const presenceMap = await robloxService.getPresence(cookie, [Number(subjectId)], 'interactive');
-      return presenceMap.get(Number(subjectId));
+      const { presence } = await robloxService.getPresence(cookie, [Number(subjectId)], 'interactive');
+      return presence.get(Number(subjectId));
     } catch (err) {
       // Rate-limited or throttled: /history still renders, just without the
       // live status line. Never let an optional lookup break the command.

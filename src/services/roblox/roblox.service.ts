@@ -44,6 +44,8 @@ export class RobloxApiError extends Error {
   constructor(
     public readonly code: number,
     message: string,
+    /** Roblox's own error text, when the response carried one. Cookie-free. */
+    public readonly bodyMessage?: string,
   ) {
     super(message);
     this.name = 'RobloxApiError';
@@ -65,6 +67,28 @@ function extractRobloxError(err: unknown): string {
 function isThrottled(err: unknown): boolean {
   if (err instanceof RateLimitRejection) return true;
   return (err as AxiosError).response?.status === 429;
+}
+
+/**
+ * Outcome of a batched presence fetch.
+ *
+ * `presence` holds **only** the users Roblox answered for; `unansweredIds` is
+ * the difference between that and what was requested.
+ */
+export interface PresenceFetchResult {
+  presence: PresenceMap;
+  /** Batches the loop actually started. */
+  batchesAttempted: number;
+  /** Batches the request asked for (before the per-cycle cap). */
+  batchesTotal: number;
+  /** Batches that returned a response. */
+  batchesSucceeded: number;
+  /** Batches never answered (throttled or capped away). */
+  unansweredBatches: number;
+  /** Requested ids with no presence record in the response. */
+  unansweredIds: number;
+  /** True when the loop stopped early because Roblox throttled us. */
+  throttled: boolean;
 }
 
 /** Caps the number of batches a single cycle may issue; logs when it truncates. */
@@ -100,14 +124,19 @@ export const robloxService = {
       );
     } catch (err) {
       const status = (err as AxiosError).response?.status;
+      const bodyMessage = extractRobloxError(err);
 
       if (status === 401 || status === 403) {
-        throw new RobloxApiError(status, 'Invalid or expired .ROBLOSECURITY cookie.');
+        // The body distinguishes a dead cookie ("User is not authenticated")
+        // from an edge block or challenge, so callers can avoid pausing polling
+        // on a 403 that is not actually an auth failure.
+        throw new RobloxApiError(status, 'Invalid or expired .ROBLOSECURITY cookie.', bodyMessage);
       }
 
       throw new RobloxApiError(
         status ?? 0,
-        `Failed to validate cookie: ${extractRobloxError(err)}`,
+        `Failed to validate cookie: ${bodyMessage}`,
+        bodyMessage,
       );
     }
   },
@@ -212,23 +241,42 @@ export const robloxService = {
    * (tracked users before friends) so that when the per-cycle batch cap kicks
    * in, the high-priority subjects are the ones that stay fresh.
    *
-   * Returns a Map<userId, RobloxUserPresence> for O(1) lookups.
+   * **Partial-data invariant:** the returned map contains *only* users Roblox
+   * actually answered for. A caller must never iterate the requested ID set
+   * against this map — an unanswered user has no entry, and treating absence as
+   * "offline" would emit false notifications. See `pollAccountPresence`.
+   *
+   * Returns the presence map plus per-batch accounting for logging.
    */
   async getPresence(
     cookie: string,
     userIds: number[],
     priority: RequestPriority = 'cycle',
-  ): Promise<PresenceMap> {
-    if (userIds.length === 0) return new Map();
+  ): Promise<PresenceFetchResult> {
+    if (userIds.length === 0) {
+      return {
+        presence: new Map(),
+        batchesAttempted: 0,
+        batchesTotal: 0,
+        batchesSucceeded: 0,
+        unansweredBatches: 0,
+        unansweredIds: 0,
+        throttled: false,
+      };
+    }
 
     const client = createRobloxClient(cookie);
     const batches = chunk(userIds, env.PRESENCE_BATCH_SIZE);
     const limit = batchLimit(batches.length, 'getPresence', priority);
     const presenceMap: PresenceMap = new Map();
+    let attempted = 0;
+    let succeeded = 0;
+    let throttled = false;
 
     for (let i = 0; i < limit; i++) {
       const batch = batches[i];
       if (!batch) break;
+      attempted++;
 
       try {
         const res = await robloxPost<RobloxPresenceResponse>(
@@ -241,8 +289,10 @@ export const robloxService = {
         for (const presence of res.userPresences) {
           presenceMap.set(presence.userId, presence);
         }
+        succeeded++;
       } catch (err) {
         if (isThrottled(err)) {
+          throttled = true;
           console.warn(
             `[RobloxService] getPresence stopped at batch ${i + 1}/${limit}: ` +
               `${extractRobloxError(err)}.${robloxRateLimiter.describe()}`,
@@ -256,7 +306,16 @@ export const robloxService = {
       }
     }
 
-    return presenceMap;
+    const answeredIds = presenceMap.size;
+    return {
+      presence: presenceMap,
+      batchesAttempted: attempted,
+      batchesTotal: batches.length,
+      batchesSucceeded: succeeded,
+      unansweredBatches: Math.max(0, batches.length - succeeded),
+      unansweredIds: Math.max(0, userIds.length - answeredIds),
+      throttled,
+    };
   },
 
   // ── getBadges ───────────────────────────────────────────────────────────────

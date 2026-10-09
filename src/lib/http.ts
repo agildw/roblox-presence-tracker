@@ -22,6 +22,7 @@ import axios, {
 } from 'axios';
 import { env } from './env.js';
 import { robloxRateLimiter, RateLimitRejection, type RequestPriority } from './ratelimit.js';
+import { recordRobloxRequest } from './roblox-forensics.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ export async function robloxRequest<T>(
     try {
       const res = await robloxRateLimiter.withSlot(priority, () => client.request<T>(config));
       data = res.data;
+      recordRobloxRequest(ctx.label, res.status, res.headers);
     } catch (err) {
       // The limiter refused a slot (throttle cooldown or saturated queue).
       // Retrying inline would only stack more queued requests, so surface it:
@@ -83,6 +85,7 @@ export async function robloxRequest<T>(
 
       const axiosErr = err as AxiosError;
       const status = axiosErr.response?.status;
+      recordRobloxRequest(ctx.label, status ?? 'network', axiosErr.response?.headers);
 
       // Non-retryable client errors (4xx other than 429) bubble up immediately.
       if (status !== undefined && status !== 429 && status < 500) throw err;
@@ -128,7 +131,10 @@ export async function robloxRequest<T>(
       continue;
     }
 
-    robloxRateLimiter.reportSuccess();
+    // NOTE: do not touch the throttle penalty here. The penalty is reset only by
+    // `robloxRateLimiter.reportCycleClean()` after a *whole* cycle completes
+    // without a 429; clearing it on a single 200 would let the interval
+    // multiplier oscillate on a lucky request.
     return data as T;
   }
 }

@@ -10,7 +10,7 @@
 
 import { prisma } from '../lib/prisma.js';
 import { env } from '../lib/env.js';
-import { adaptInterval, describeCycleFailure } from '../lib/adaptive.js';
+import { describeCycleFailure, scheduleDelayMs } from '../lib/adaptive.js';
 import { robloxRateLimiter } from '../lib/ratelimit.js';
 import { syncService } from '../services/sync/sync.service.js';
 import { accountService } from '../services/account/account.service.js';
@@ -104,12 +104,20 @@ async function runSyncCycle(): Promise<void> {
     running = false;
   }
 
-  const { intervalMs, multiplier } = adaptInterval(env.FRIEND_SYNC_INTERVAL_MS, robloxRateLimiter);
-  if (multiplier > 1) {
+  const { delayMs, multiplier, cooldownRemainingMs } = scheduleDelayMs(
+    env.FRIEND_SYNC_INTERVAL_MS,
+    robloxRateLimiter,
+  );
+  if (cooldownRemainingMs > delayMs) {
     console.log(
-      `[Worker] Next friend sync in ${(intervalMs / 60000).toFixed(1)}m ` +
+      `[Worker] Next friend sync in ${(delayMs / 60000).toFixed(1)}m ` +
+        `(waiting out ${(cooldownRemainingMs / 1000).toFixed(1)}s cooldown).`,
+    );
+  } else if (multiplier > 1) {
+    console.log(
+      `[Worker] Next friend sync in ${(delayMs / 60000).toFixed(1)}m ` +
         `(base ${env.FRIEND_SYNC_INTERVAL_MS / 60000}m, ×${multiplier.toFixed(1)}).`,
     );
   }
-  schedule(intervalMs);
+  schedule(delayMs);
 }

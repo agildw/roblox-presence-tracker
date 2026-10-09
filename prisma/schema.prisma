@@ -42,6 +42,12 @@ model RobloxAccount {
   // 🔐 Encrypted .ROBLOSECURITY cookie (AES-256-GCM, base64 encoded)
   roblosecurity String @db.Text
 
+  // Auth health: consecutive failed cookie validations, and when the owner was
+  // last alerted about an invalid cookie. Persisted so an invalid cookie does
+  // not re-alert on every restart.
+  authFailureCount Int      @default(0)
+  authLastAlertAt  DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
