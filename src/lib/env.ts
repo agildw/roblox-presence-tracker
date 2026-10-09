@@ -37,6 +37,19 @@ function intEnv(
   return parsed;
 }
 
+/** Parses an optional boolean env var (`1/true/yes/on` vs `0/false/no/off`). */
+function boolEnv(key: string, fallback: boolean): boolean {
+  const raw = process.env[key];
+  if (raw === undefined || raw.trim() === '') return fallback;
+
+  const normalized = raw.trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+
+  console.warn(`[Env] ${key}="${raw}" is not a boolean; using default ${fallback}.`);
+  return fallback;
+}
+
 export const env = {
   BOT_TOKEN: requireEnv('BOT_TOKEN'),
   DATABASE_URL: requireEnv('DATABASE_URL'),
@@ -103,4 +116,13 @@ export const env = {
   ROBLOX_COOLDOWN_MAX_MS: intEnv('ROBLOX_COOLDOWN_MAX_MS', 10 * 60 * 1000, { min: 1_000 }),
   /** Max slow-down multiplier applied to the poll interval while penalised. */
   ROBLOX_ADAPTIVE_MAX_MULTIPLIER: intEnv('ROBLOX_ADAPTIVE_MAX_MULTIPLIER', 4, { min: 1, max: 64 }),
+
+  // ── Diagnostics ────────────────────────────────────────────────────────────
+  /**
+   * Emit one `[RBX]` line per Roblox request: timestamp, label, gap since the
+   * previous Roblox request, status, `Retry-After`, `x-ratelimit-*`, and
+   * per-minute counts by endpoint. Logging only — never affects behaviour, and
+   * never emits credentials.
+   */
+  ROBLOX_FORENSIC_LOG: boolEnv('ROBLOX_FORENSIC_LOG', true),
 } as const;

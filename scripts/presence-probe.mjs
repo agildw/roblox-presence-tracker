@@ -31,7 +31,14 @@ import https from 'node:https';
 const COOKIE = process.env['ROBLOX_COOKIE'] ?? '';
 const GAP_MS = Number(process.env['PROBE_GAP_MS'] ?? 75_000);
 const SIZE = Math.min(50, Number(process.env['PROBE_SIZE'] ?? 50));
+/**
+ * Spacing trials, in the order given. Shuffled per run by default so a single
+ * contaminated ordering cannot masquerade as a spacing effect; set
+ * `PROBE_FIXED_ORDER=1` to run them in declaration order.
+ */
 const SPACINGS = [2000, 1000, 500];
+const REPETITIONS = Number(process.env['PROBE_REPETITIONS'] ?? 1);
+const FIXED_ORDER = process.env['PROBE_FIXED_ORDER'] === '1';
 const REQUESTS_PER_RUN = 10;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -57,6 +64,12 @@ function request(userIds) {
           resolve({
             status: res.statusCode,
             ms: Date.now() - startedAt,
+            // Provenance: which buckets the *server* attributes this request to.
+            host: res.headers['x-ratelimit-bucket'] ?? null,
+            edge: ['x-envoy-upstream-service-time', 'x-served-by', 'server', 'via', 'cf-ray']
+              .map((h) => (res.headers[h] ? `${h}=${res.headers[h]}` : null))
+              .filter(Boolean)
+              .join(' '),
             retryAfter: res.headers['retry-after'] ?? null,
             limit: res.headers['x-ratelimit-limit'] ?? null,
             remaining: res.headers['x-ratelimit-remaining'] ?? null,
@@ -94,6 +107,8 @@ async function runTrial(mode, spacingMs) {
       `remaining=${r.remaining ?? '-'}`,
       `reset=${r.reset ?? '-'}`,
       r.coverage ? `coverage=${r.coverage}` : '',
+      r.host ? `bucket=${r.host}` : '',
+      r.edge ? `[${r.edge}]` : '',
     ].filter(Boolean);
     console.log(parts.join('  '));
     if (i < REQUESTS_PER_RUN - 1) await sleep(spacingMs);
