@@ -12,14 +12,22 @@
  * (the endpoint that *does* answer 401) through the same shared limiter:
  *  - at startup
  *  - every `AUTH_CHECK_INTERVAL_MS`
- *  - immediately whenever a presence cycle is throttled
+ *  - whenever a presence cycle is throttled (as a hint; a 429 never proves it)
  *
- * While an account is known to be invalid, presence cycles skip it entirely
- * rather than processing anonymous results. A successful `/setcookie` clears the
- * state and polling resumes automatically.
+ * **Classification.** A cookie is marked invalid only when:
+ *  - HTTP **401** with Roblox's "not authenticated" body — the unambiguous case; or
+ *  - **two consecutive** failing checks of any kind (counts persisted in the DB).
+ * A single 403 is deliberately *not* enough: 403 also comes from edge blocks and
+ * challenge pages, and pausing polling on one would be a false positive. A 429,
+ * cooldown, or network error alone never marks invalid.
+ *
+ * While an account is known invalid, presence cycles skip it entirely rather than
+ * processing anonymous results. A successful `/setcookie` clears the state, and
+ * so does any later 200 check (self-healing — see `checkAccount`).
  *
  * Safety: the cookie is only ever passed to the Roblox client. It is never
- * logged, and no error message here includes it.
+ * logged, and no error message here includes it. `lastError` stores only the
+ * endpoint's own error text.
  */
 
 import { env } from '../../lib/env.js';
@@ -33,21 +41,28 @@ import { notificationService } from '../notification/notification.service.js';
 export type AuthStatus = 'valid' | 'invalid' | 'unknown';
 
 interface AuthState {
-  /** True once a 401/403 has been observed and not yet cleared. */
+  /** True once the cookie has been proven dead and not yet cleared. */
   invalid: boolean;
   /** Last validation outcome, for diagnostics. */
   status: AuthStatus;
   /** When the last validation ran. */
   lastCheckAt: number;
-  /** When the last alert was sent (0 = never). */
+  /** When the last alert was sent (mirrors the persisted value). */
   lastAlertAt: number;
   /** Safe, cookie-free description of the last failure. */
   lastError: string | null;
 }
 
-// ── State ─────────────────────────────────────────────────────────────────────
-
+/** In-memory mirror of per-account auth state, hydrated from the DB lazily. */
 const states = new Map<number, AuthState>();
+
+/**
+ * Roblox's error text for a genuinely dead cookie. Exact-match against this is
+ * what makes a 401 conclusive; anything else needs the consecutive-failure rule.
+ * Measured: `9002` "User is not authenticated" (invalid cookie) vs
+ * `9002` "Authentication token is missing" (no cookie at all).
+ */
+const NOT_AUTHENTICATED = 'user is not authenticated';
 
 function stateFor(accountId: number): AuthState {
   let state = states.get(accountId);
@@ -56,6 +71,38 @@ function stateFor(accountId: number): AuthState {
     states.set(accountId, state);
   }
   return state;
+}
+
+// ── Persistence helpers ───────────────────────────────────────────────────────
+
+/** Loads persisted failure counts + last alert into the in-memory mirror. */
+async function hydrate(accountId: number): Promise<{ consecutiveFailures: number; lastAlertAt: number }> {
+  const row = await prisma.robloxAccount.findUnique({
+    where: { id: accountId },
+    select: { authFailureCount: true, authLastAlertAt: true },
+  });
+
+  const state = stateFor(accountId);
+  state.lastAlertAt = row?.authLastAlertAt ? row.authLastAlertAt.getTime() : 0;
+  return {
+    consecutiveFailures: row?.authFailureCount ?? 0,
+    lastAlertAt: state.lastAlertAt,
+  };
+}
+
+/** Persists failure count and (optionally) the alert time. Never throws. */
+async function persist(accountId: number, failures: number, lastAlertAt: Date | null): Promise<void> {
+  try {
+    await prisma.robloxAccount.update({
+      where: { id: accountId },
+      data: {
+        authFailureCount: failures,
+        ...(lastAlertAt ? { authLastAlertAt: lastAlertAt } : {}),
+      },
+    });
+  } catch (err) {
+    console.error(`[AuthHealth] Failed to persist auth state for account ${accountId}:`, err);
+  }
 }
 
 // ── Service ───────────────────────────────────────────────────────────────────
@@ -80,55 +127,87 @@ export const authHealthService = {
     state.invalid = false;
     state.status = 'valid';
     state.lastError = null;
+    void persist(accountId, 0, null);
   },
 
   /**
    * Validates the account's stored cookie, updates state, and alerts once if it
    * has become invalid. Returns the outcome; never throws for an invalid cookie
    * (that is a normal, handled result).
+   *
+   * Self-healing: any successful check clears the invalid flag and resets the
+   * failure count, so a cookie fixed directly in the DB (or a false positive)
+   * resumes polling on the next check without `/setcookie`.
    */
   async checkAccount(accountId: number): Promise<AuthStatus> {
     const account = await prisma.robloxAccount.findUnique({
       where: { id: accountId },
-      select: { id: true, username: true, displayName: true, user: { select: { telegramId: true } } },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        user: { select: { telegramId: true } },
+      },
     });
     if (!account) return 'unknown';
 
-    const cookie = await accountService.getDecryptedCookieByAccountId(accountId);
-    if (!cookie) {
-      this.recordInvalid(accountId, account.user.telegramId, account.displayName || account.username || String(accountId), 'No stored cookie.');
-      return 'invalid';
-    }
-
+    const label = account.displayName || account.username || String(accountId);
     const state = stateFor(accountId);
     state.lastCheckAt = Date.now();
 
+    const { consecutiveFailures } = await hydrate(accountId);
+
+    const cookie = await accountService.getDecryptedCookieByAccountId(accountId);
+    if (!cookie) {
+      await this.registerFailure(accountId, account.user.telegramId, label, 'No stored cookie.', false);
+      return 'invalid';
+    }
+
     try {
       await robloxService.validateCookie(cookie);
+
+      // ── Valid: clear everything, including a persisted failure count ───────
       const wasInvalid = state.invalid;
       state.invalid = false;
       state.status = 'valid';
       state.lastError = null;
+      if (consecutiveFailures > 0 || wasInvalid) {
+        await persist(accountId, 0, null);
+      }
       if (wasInvalid) {
-        console.log(`[AuthHealth] Account ${accountId}: cookie is valid again.`);
+        console.log(`[AuthHealth] Account ${accountId}: cookie is valid again; resuming presence polling.`);
       }
       return 'valid';
     } catch (err) {
       const code = err instanceof RobloxApiError ? err.code : 0;
+      const body = err instanceof RobloxApiError ? (err.bodyMessage ?? '') : '';
+      const conclusive = code === 401 && body.toLowerCase().includes(NOT_AUTHENTICATED);
 
-      // Only an explicit 401/403 proves the cookie is dead. Anything else
-      // (cooldown, network, 5xx) is 'unknown' and must NOT trip the flag —
-      // otherwise a transient throttle would be misread as an expired cookie.
-      if (code === 401 || code === 403) {
-        this.recordInvalid(
+      if (conclusive) {
+        await this.registerFailure(
           accountId,
           account.user.telegramId,
-          account.displayName || account.username || String(accountId),
-          `Roblox rejected the cookie (HTTP ${code}).`,
+          label,
+          `Roblox rejected the cookie (HTTP 401: ${body || 'not authenticated'}).`,
+          true,
         );
         return 'invalid';
       }
 
+      if (code === 401 || code === 403) {
+        // Our own 401/403 that is not the known "not authenticated" body, or a
+        // 403 (edge block / challenge) — plausible auth failure, but not proof.
+        await this.registerFailure(
+          accountId,
+          account.user.telegramId,
+          label,
+          `Roblox returned HTTP ${code}${body ? `: ${body}` : ''}.`,
+          false,
+        );
+        return state.invalid ? 'invalid' : 'unknown';
+      }
+
+      // 429, cooldown, or network: never counts toward the invalid decision.
       state.status = 'unknown';
       state.lastError = err instanceof Error ? err.message : String(err);
       console.warn(
@@ -155,23 +234,54 @@ export const authHealthService = {
     }
   },
 
-  /** Marks an account invalid and alerts the owner/admin, rate-limited. */
-  recordInvalid(accountId: number, telegramId: string, label: string, reason: string): void {
+  /**
+   * Records one failed check. `conclusive` (401 + "not authenticated") trips the
+   * invalid flag immediately; otherwise two consecutive failures are required.
+   */
+  async registerFailure(
+    accountId: number,
+    telegramId: string,
+    label: string,
+    reason: string,
+    conclusive: boolean,
+  ): Promise<void> {
     const state = stateFor(accountId);
-    const firstTime = !state.invalid;
-    state.invalid = true;
-    state.status = 'invalid';
+    const { consecutiveFailures } = await hydrate(accountId);
+    const failures = consecutiveFailures + 1;
+    const shouldTrip = conclusive || failures >= 2;
+
+    await persist(accountId, failures, null);
+
     state.lastError = reason;
     state.lastCheckAt = Date.now();
 
+    if (!shouldTrip) {
+      state.status = 'unknown';
+      console.warn(
+        `[AuthHealth] Account ${accountId}: check failed (${reason}) — ` +
+          `${failures}/2 consecutive; not pausing yet.`,
+      );
+      return;
+    }
+
+    const firstTime = !state.invalid;
+    state.invalid = true;
+    state.status = 'invalid';
+
     if (firstTime) {
       console.error(
-        `[AuthHealth] Account ${accountId} (${label}) cookie is INVALID — presence polling paused. ${reason} ` +
-          `Reconnect with /setcookie.`,
+        `[AuthHealth] Account ${accountId} (${label}) cookie is INVALID — presence polling paused. ` +
+          `${reason} Reconnect with /setcookie.`,
       );
     }
 
-    void this.alertIfDue(accountId, telegramId, label, reason);
+    // Awaited (not fire-and-forget) so the alert is delivered before the check
+    // resolves: the caller can then rely on the owner having been notified, and
+    // tests are not subject to a race. Send failures are swallowed inside
+    // `sendDirectMessage`, so this cannot fail the check.
+    await this.alertIfDue(accountId, telegramId, label, reason).catch((err) => {
+      console.error(`[AuthHealth] Failed to send auth alert for account ${accountId}:`, err);
+    });
   },
 
   /** Sends the owner/admin alert, at most once per `AUTH_ALERT_COOLDOWN_HOURS`. */
@@ -179,8 +289,14 @@ export const authHealthService = {
     const state = stateFor(accountId);
     const cooldownMs = env.AUTH_ALERT_COOLDOWN_HOURS * 60 * 60 * 1000;
     const now = Date.now();
-    if (state.lastAlertAt !== 0 && now - state.lastAlertAt < cooldownMs) return;
+
+    // The persisted timestamp is authoritative, so a restart/crash loop while the
+    // cookie is invalid cannot re-alert every time.
+    const { consecutiveFailures, lastAlertAt } = await hydrate(accountId);
+    if (lastAlertAt !== 0 && now - lastAlertAt < cooldownMs) return;
+
     state.lastAlertAt = now;
+    await persist(accountId, consecutiveFailures, new Date(now));
 
     const escapeHtml = (text: string) =>
       text.replace(/[<>&]/g, (m) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[m] as string));

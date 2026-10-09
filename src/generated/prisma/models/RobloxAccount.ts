@@ -30,12 +30,14 @@ export type RobloxAccountAvgAggregateOutputType = {
   id: number | null
   userId: number | null
   robloxUserId: number | null
+  authFailureCount: number | null
 }
 
 export type RobloxAccountSumAggregateOutputType = {
   id: number | null
   userId: number | null
   robloxUserId: bigint | null
+  authFailureCount: number | null
 }
 
 export type RobloxAccountMinAggregateOutputType = {
@@ -45,6 +47,8 @@ export type RobloxAccountMinAggregateOutputType = {
   username: string | null
   displayName: string | null
   roblosecurity: string | null
+  authFailureCount: number | null
+  authLastAlertAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -56,6 +60,8 @@ export type RobloxAccountMaxAggregateOutputType = {
   username: string | null
   displayName: string | null
   roblosecurity: string | null
+  authFailureCount: number | null
+  authLastAlertAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -67,6 +73,8 @@ export type RobloxAccountCountAggregateOutputType = {
   username: number
   displayName: number
   roblosecurity: number
+  authFailureCount: number
+  authLastAlertAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -77,12 +85,14 @@ export type RobloxAccountAvgAggregateInputType = {
   id?: true
   userId?: true
   robloxUserId?: true
+  authFailureCount?: true
 }
 
 export type RobloxAccountSumAggregateInputType = {
   id?: true
   userId?: true
   robloxUserId?: true
+  authFailureCount?: true
 }
 
 export type RobloxAccountMinAggregateInputType = {
@@ -92,6 +102,8 @@ export type RobloxAccountMinAggregateInputType = {
   username?: true
   displayName?: true
   roblosecurity?: true
+  authFailureCount?: true
+  authLastAlertAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -103,6 +115,8 @@ export type RobloxAccountMaxAggregateInputType = {
   username?: true
   displayName?: true
   roblosecurity?: true
+  authFailureCount?: true
+  authLastAlertAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -114,6 +128,8 @@ export type RobloxAccountCountAggregateInputType = {
   username?: true
   displayName?: true
   roblosecurity?: true
+  authFailureCount?: true
+  authLastAlertAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -212,6 +228,8 @@ export type RobloxAccountGroupByOutputType = {
   username: string
   displayName: string
   roblosecurity: string
+  authFailureCount: number
+  authLastAlertAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: RobloxAccountCountAggregateOutputType | null
@@ -246,6 +264,8 @@ export type RobloxAccountWhereInput = {
   username?: Prisma.StringFilter<"RobloxAccount"> | string
   displayName?: Prisma.StringFilter<"RobloxAccount"> | string
   roblosecurity?: Prisma.StringFilter<"RobloxAccount"> | string
+  authFailureCount?: Prisma.IntFilter<"RobloxAccount"> | number
+  authLastAlertAt?: Prisma.DateTimeNullableFilter<"RobloxAccount"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"RobloxAccount"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"RobloxAccount"> | Date | string
   user?: Prisma.XOR<Prisma.TelegramUserScalarRelationFilter, Prisma.TelegramUserWhereInput>
@@ -262,6 +282,8 @@ export type RobloxAccountOrderByWithRelationInput = {
   username?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   roblosecurity?: Prisma.SortOrder
+  authFailureCount?: Prisma.SortOrder
+  authLastAlertAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.TelegramUserOrderByWithRelationInput
@@ -282,6 +304,8 @@ export type RobloxAccountWhereUniqueInput = Prisma.AtLeast<{
   username?: Prisma.StringFilter<"RobloxAccount"> | string
   displayName?: Prisma.StringFilter<"RobloxAccount"> | string
   roblosecurity?: Prisma.StringFilter<"RobloxAccount"> | string
+  authFailureCount?: Prisma.IntFilter<"RobloxAccount"> | number
+  authLastAlertAt?: Prisma.DateTimeNullableFilter<"RobloxAccount"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"RobloxAccount"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"RobloxAccount"> | Date | string
   user?: Prisma.XOR<Prisma.TelegramUserScalarRelationFilter, Prisma.TelegramUserWhereInput>
@@ -298,6 +322,8 @@ export type RobloxAccountOrderByWithAggregationInput = {
   username?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   roblosecurity?: Prisma.SortOrder
+  authFailureCount?: Prisma.SortOrder
+  authLastAlertAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.RobloxAccountCountOrderByAggregateInput
@@ -317,6 +343,8 @@ export type RobloxAccountScalarWhereWithAggregatesInput = {
   username?: Prisma.StringWithAggregatesFilter<"RobloxAccount"> | string
   displayName?: Prisma.StringWithAggregatesFilter<"RobloxAccount"> | string
   roblosecurity?: Prisma.StringWithAggregatesFilter<"RobloxAccount"> | string
+  authFailureCount?: Prisma.IntWithAggregatesFilter<"RobloxAccount"> | number
+  authLastAlertAt?: Prisma.DateTimeNullableWithAggregatesFilter<"RobloxAccount"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"RobloxAccount"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"RobloxAccount"> | Date | string
 }
@@ -326,6 +354,8 @@ export type RobloxAccountCreateInput = {
   username: string
   displayName: string
   roblosecurity: string
+  authFailureCount?: number
+  authLastAlertAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.TelegramUserCreateNestedOneWithoutRobloxAccountInput
@@ -342,6 +372,8 @@ export type RobloxAccountUncheckedCreateInput = {
   username: string
   displayName: string
   roblosecurity: string
+  authFailureCount?: number
+  authLastAlertAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   friends?: Prisma.FriendUncheckedCreateNestedManyWithoutAccountInput
@@ -355,6 +387,8 @@ export type RobloxAccountUpdateInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  authFailureCount?: Prisma.IntFieldUpdateOperationsInput | number
+  authLastAlertAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.TelegramUserUpdateOneRequiredWithoutRobloxAccountNestedInput
@@ -371,6 +405,8 @@ export type RobloxAccountUncheckedUpdateInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  authFailureCount?: Prisma.IntFieldUpdateOperationsInput | number
+  authLastAlertAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   friends?: Prisma.FriendUncheckedUpdateManyWithoutAccountNestedInput
@@ -386,6 +422,8 @@ export type RobloxAccountCreateManyInput = {
   username: string
   displayName: string
   roblosecurity: string
+  authFailureCount?: number
+  authLastAlertAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -395,6 +433,8 @@ export type RobloxAccountUpdateManyMutationInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  authFailureCount?: Prisma.IntFieldUpdateOperationsInput | number
+  authLastAlertAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -406,6 +446,8 @@ export type RobloxAccountUncheckedUpdateManyInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  authFailureCount?: Prisma.IntFieldUpdateOperationsInput | number
+  authLastAlertAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -428,6 +470,8 @@ export type RobloxAccountCountOrderByAggregateInput = {
   username?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   roblosecurity?: Prisma.SortOrder
+  authFailureCount?: Prisma.SortOrder
+  authLastAlertAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -436,6 +480,7 @@ export type RobloxAccountAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   robloxUserId?: Prisma.SortOrder
+  authFailureCount?: Prisma.SortOrder
 }
 
 export type RobloxAccountMaxOrderByAggregateInput = {
@@ -445,6 +490,8 @@ export type RobloxAccountMaxOrderByAggregateInput = {
   username?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   roblosecurity?: Prisma.SortOrder
+  authFailureCount?: Prisma.SortOrder
+  authLastAlertAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -456,6 +503,8 @@ export type RobloxAccountMinOrderByAggregateInput = {
   username?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   roblosecurity?: Prisma.SortOrder
+  authFailureCount?: Prisma.SortOrder
+  authLastAlertAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -464,6 +513,7 @@ export type RobloxAccountSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   robloxUserId?: Prisma.SortOrder
+  authFailureCount?: Prisma.SortOrder
 }
 
 export type RobloxAccountScalarRelationFilter = {
@@ -572,6 +622,8 @@ export type RobloxAccountCreateWithoutUserInput = {
   username: string
   displayName: string
   roblosecurity: string
+  authFailureCount?: number
+  authLastAlertAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   friends?: Prisma.FriendCreateNestedManyWithoutAccountInput
@@ -586,6 +638,8 @@ export type RobloxAccountUncheckedCreateWithoutUserInput = {
   username: string
   displayName: string
   roblosecurity: string
+  authFailureCount?: number
+  authLastAlertAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   friends?: Prisma.FriendUncheckedCreateNestedManyWithoutAccountInput
@@ -615,6 +669,8 @@ export type RobloxAccountUpdateWithoutUserInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  authFailureCount?: Prisma.IntFieldUpdateOperationsInput | number
+  authLastAlertAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   friends?: Prisma.FriendUpdateManyWithoutAccountNestedInput
@@ -629,6 +685,8 @@ export type RobloxAccountUncheckedUpdateWithoutUserInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  authFailureCount?: Prisma.IntFieldUpdateOperationsInput | number
+  authLastAlertAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   friends?: Prisma.FriendUncheckedUpdateManyWithoutAccountNestedInput
@@ -642,6 +700,8 @@ export type RobloxAccountCreateWithoutFriendsInput = {
   username: string
   displayName: string
   roblosecurity: string
+  authFailureCount?: number
+  authLastAlertAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.TelegramUserCreateNestedOneWithoutRobloxAccountInput
@@ -657,6 +717,8 @@ export type RobloxAccountUncheckedCreateWithoutFriendsInput = {
   username: string
   displayName: string
   roblosecurity: string
+  authFailureCount?: number
+  authLastAlertAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   trackedUsers?: Prisma.TrackedUserUncheckedCreateNestedManyWithoutAccountInput
@@ -685,6 +747,8 @@ export type RobloxAccountUpdateWithoutFriendsInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  authFailureCount?: Prisma.IntFieldUpdateOperationsInput | number
+  authLastAlertAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.TelegramUserUpdateOneRequiredWithoutRobloxAccountNestedInput
@@ -700,6 +764,8 @@ export type RobloxAccountUncheckedUpdateWithoutFriendsInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  authFailureCount?: Prisma.IntFieldUpdateOperationsInput | number
+  authLastAlertAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trackedUsers?: Prisma.TrackedUserUncheckedUpdateManyWithoutAccountNestedInput
@@ -712,6 +778,8 @@ export type RobloxAccountCreateWithoutTrackedUsersInput = {
   username: string
   displayName: string
   roblosecurity: string
+  authFailureCount?: number
+  authLastAlertAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.TelegramUserCreateNestedOneWithoutRobloxAccountInput
@@ -727,6 +795,8 @@ export type RobloxAccountUncheckedCreateWithoutTrackedUsersInput = {
   username: string
   displayName: string
   roblosecurity: string
+  authFailureCount?: number
+  authLastAlertAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   friends?: Prisma.FriendUncheckedCreateNestedManyWithoutAccountInput
@@ -755,6 +825,8 @@ export type RobloxAccountUpdateWithoutTrackedUsersInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  authFailureCount?: Prisma.IntFieldUpdateOperationsInput | number
+  authLastAlertAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.TelegramUserUpdateOneRequiredWithoutRobloxAccountNestedInput
@@ -770,6 +842,8 @@ export type RobloxAccountUncheckedUpdateWithoutTrackedUsersInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  authFailureCount?: Prisma.IntFieldUpdateOperationsInput | number
+  authLastAlertAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   friends?: Prisma.FriendUncheckedUpdateManyWithoutAccountNestedInput
@@ -782,6 +856,8 @@ export type RobloxAccountCreateWithoutGameSessionsInput = {
   username: string
   displayName: string
   roblosecurity: string
+  authFailureCount?: number
+  authLastAlertAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.TelegramUserCreateNestedOneWithoutRobloxAccountInput
@@ -797,6 +873,8 @@ export type RobloxAccountUncheckedCreateWithoutGameSessionsInput = {
   username: string
   displayName: string
   roblosecurity: string
+  authFailureCount?: number
+  authLastAlertAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   friends?: Prisma.FriendUncheckedCreateNestedManyWithoutAccountInput
@@ -825,6 +903,8 @@ export type RobloxAccountUpdateWithoutGameSessionsInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  authFailureCount?: Prisma.IntFieldUpdateOperationsInput | number
+  authLastAlertAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.TelegramUserUpdateOneRequiredWithoutRobloxAccountNestedInput
@@ -840,6 +920,8 @@ export type RobloxAccountUncheckedUpdateWithoutGameSessionsInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  authFailureCount?: Prisma.IntFieldUpdateOperationsInput | number
+  authLastAlertAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   friends?: Prisma.FriendUncheckedUpdateManyWithoutAccountNestedInput
@@ -852,6 +934,8 @@ export type RobloxAccountCreateWithoutPresenceSessionsInput = {
   username: string
   displayName: string
   roblosecurity: string
+  authFailureCount?: number
+  authLastAlertAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.TelegramUserCreateNestedOneWithoutRobloxAccountInput
@@ -867,6 +951,8 @@ export type RobloxAccountUncheckedCreateWithoutPresenceSessionsInput = {
   username: string
   displayName: string
   roblosecurity: string
+  authFailureCount?: number
+  authLastAlertAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   friends?: Prisma.FriendUncheckedCreateNestedManyWithoutAccountInput
@@ -895,6 +981,8 @@ export type RobloxAccountUpdateWithoutPresenceSessionsInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  authFailureCount?: Prisma.IntFieldUpdateOperationsInput | number
+  authLastAlertAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.TelegramUserUpdateOneRequiredWithoutRobloxAccountNestedInput
@@ -910,6 +998,8 @@ export type RobloxAccountUncheckedUpdateWithoutPresenceSessionsInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   roblosecurity?: Prisma.StringFieldUpdateOperationsInput | string
+  authFailureCount?: Prisma.IntFieldUpdateOperationsInput | number
+  authLastAlertAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   friends?: Prisma.FriendUncheckedUpdateManyWithoutAccountNestedInput
@@ -982,6 +1072,8 @@ export type RobloxAccountSelect<ExtArgs extends runtime.Types.Extensions.Interna
   username?: boolean
   displayName?: boolean
   roblosecurity?: boolean
+  authFailureCount?: boolean
+  authLastAlertAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.TelegramUserDefaultArgs<ExtArgs>
@@ -1001,11 +1093,13 @@ export type RobloxAccountSelectScalar = {
   username?: boolean
   displayName?: boolean
   roblosecurity?: boolean
+  authFailureCount?: boolean
+  authLastAlertAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type RobloxAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "robloxUserId" | "username" | "displayName" | "roblosecurity" | "createdAt" | "updatedAt", ExtArgs["result"]["robloxAccount"]>
+export type RobloxAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "robloxUserId" | "username" | "displayName" | "roblosecurity" | "authFailureCount" | "authLastAlertAt" | "createdAt" | "updatedAt", ExtArgs["result"]["robloxAccount"]>
 export type RobloxAccountInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.TelegramUserDefaultArgs<ExtArgs>
   friends?: boolean | Prisma.RobloxAccount$friendsArgs<ExtArgs>
@@ -1031,6 +1125,8 @@ export type $RobloxAccountPayload<ExtArgs extends runtime.Types.Extensions.Inter
     username: string
     displayName: string
     roblosecurity: string
+    authFailureCount: number
+    authLastAlertAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["robloxAccount"]>
@@ -1413,6 +1509,8 @@ export interface RobloxAccountFieldRefs {
   readonly username: Prisma.FieldRef<"RobloxAccount", 'String'>
   readonly displayName: Prisma.FieldRef<"RobloxAccount", 'String'>
   readonly roblosecurity: Prisma.FieldRef<"RobloxAccount", 'String'>
+  readonly authFailureCount: Prisma.FieldRef<"RobloxAccount", 'Int'>
+  readonly authLastAlertAt: Prisma.FieldRef<"RobloxAccount", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"RobloxAccount", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"RobloxAccount", 'DateTime'>
 }

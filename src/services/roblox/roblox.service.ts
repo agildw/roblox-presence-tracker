@@ -44,6 +44,8 @@ export class RobloxApiError extends Error {
   constructor(
     public readonly code: number,
     message: string,
+    /** Roblox's own error text, when the response carried one. Cookie-free. */
+    public readonly bodyMessage?: string,
   ) {
     super(message);
     this.name = 'RobloxApiError';
@@ -122,14 +124,19 @@ export const robloxService = {
       );
     } catch (err) {
       const status = (err as AxiosError).response?.status;
+      const bodyMessage = extractRobloxError(err);
 
       if (status === 401 || status === 403) {
-        throw new RobloxApiError(status, 'Invalid or expired .ROBLOSECURITY cookie.');
+        // The body distinguishes a dead cookie ("User is not authenticated")
+        // from an edge block or challenge, so callers can avoid pausing polling
+        // on a 403 that is not actually an auth failure.
+        throw new RobloxApiError(status, 'Invalid or expired .ROBLOSECURITY cookie.', bodyMessage);
       }
 
       throw new RobloxApiError(
         status ?? 0,
-        `Failed to validate cookie: ${extractRobloxError(err)}`,
+        `Failed to validate cookie: ${bodyMessage}`,
+        bodyMessage,
       );
     }
   },

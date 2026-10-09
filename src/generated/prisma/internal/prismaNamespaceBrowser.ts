@@ -96,6 +96,8 @@ export const RobloxAccountScalarFieldEnum = {
   username: 'username',
   displayName: 'displayName',
   roblosecurity: 'roblosecurity',
+  authFailureCount: 'authFailureCount',
+  authLastAlertAt: 'authLastAlertAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
