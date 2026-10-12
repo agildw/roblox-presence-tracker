@@ -143,4 +143,33 @@ export const env = {
   AUTH_CHECK_INTERVAL_MS: intEnv('AUTH_CHECK_INTERVAL_MS', 15 * 60 * 1000, { min: 60_000 }),
   /** Minimum gap between "cookie invalid" alerts for the same account. */
   AUTH_ALERT_COOLDOWN_HOURS: intEnv('AUTH_ALERT_COOLDOWN_HOURS', 6, { min: 1, max: 720 }),
+
+  // ── Game stats (/gamestats) ────────────────────────────────────────────────
+  /**
+   * IANA time zone used to define "today" (since local midnight) and the
+   * 7/30-day window edges for `/gamestats`. Display formatting elsewhere stays
+   * hard-coded to Asia/Jakarta (`lib/date.ts`); this knob only affects how
+   * window boundaries are computed. Falls back to Asia/Jakarta when unset.
+   */
+  TZ_NAME: process.env['TZ_NAME'] || 'Asia/Jakarta',
+  /**
+   * Adjacent sessions of the same subject in the same universe whose gap is at
+   * most this many seconds are merged into one displayed session in the `user:`
+   * view (server hops split a real play session into several rows). Totals are
+   * unaffected — they always sum raw rows.
+   */
+  GAMESTATS_MERGE_GAP_SECONDS: intEnv('GAMESTATS_MERGE_GAP_SECONDS', 120, { min: 0, max: 86_400 }),
+  /**
+   * Sanity threshold: a session longer than this many hours is flagged in the
+   * message footer as possibly inflated by monitoring gaps. Read-only — it never
+   * alters the numbers. Open sessions are additionally capped (for display and
+   * aggregation) at the subject's last successful poll time.
+   */
+  GAMESTATS_MAX_SESSION_HOURS: intEnv('GAMESTATS_MAX_SESSION_HOURS', 12, { min: 1, max: 720 }),
+  /** Positive place→universe/name cache TTL (ms). */
+  GAMESTATS_RESOLVE_TTL_MS: intEnv('GAMESTATS_RESOLVE_TTL_MS', 24 * 60 * 60 * 1000, { min: 1_000 }),
+  /** Negative place→universe cache TTL (ms) — resolved-but-unknown places. */
+  GAMESTATS_RESOLVE_NEGATIVE_TTL_MS: intEnv('GAMESTATS_RESOLVE_NEGATIVE_TTL_MS', 5 * 60 * 1000, { min: 1_000 }),
+  /** Max raw rows fetched when building a `user:` merged session list. */
+  GAMESTATS_USER_SESSION_FETCH_CAP: intEnv('GAMESTATS_USER_SESSION_FETCH_CAP', 5000, { min: 10, max: 100_000 }),
 } as const;

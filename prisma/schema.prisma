@@ -171,6 +171,7 @@ model GameSession {
   @@index([subjectId])
   @@index([robloxAccountId, startTime]) // analytics: sessions by account over time
   @@index([robloxAccountId, subjectId]) // analytics: sessions per subject
+  @@index([robloxAccountId, universeId, startTime]) // /gamestats: per-account universe window scans
 
   @@map("GameSession")
 }
