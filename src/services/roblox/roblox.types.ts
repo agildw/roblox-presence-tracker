@@ -109,3 +109,29 @@ export interface RobloxBadgeAwardedDate {
 export interface RobloxBadgeAwardedDatesResponse {
   data: RobloxBadgeAwardedDate[];
 }
+
+// ── Games / universes (public, no cookie) ────────────────────────────────────
+
+/**
+ * Response from GET apis.roblox.com/universes/v1/places/{placeId}/universe.
+ * An unknown or invalid place returns HTTP 200 with `universeId: null`, so a
+ * null id is a *valid* "not resolvable" answer, never an error.
+ */
+export interface RobloxPlaceUniverseResponse {
+  universeId: number | null;
+}
+
+/** One entry from GET games.roblox.com/v1/games?universeIds=... */
+export interface RobloxGameDetail {
+  id: number;
+  rootPlaceId: number;
+  name: string;
+  creator?: { id: number; name: string; type: string };
+  playing?: number;
+  visits?: number;
+}
+
+export interface RobloxGamesResponse {
+  data: RobloxGameDetail[];
+}
+

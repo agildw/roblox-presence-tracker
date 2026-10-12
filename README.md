@@ -50,8 +50,9 @@ npm run dev
 | `BOT_TOKEN` | yes | Telegram bot token |
 | `DATABASE_URL` | yes | MySQL connection string, e.g. `mysql://user:pass@localhost:3306/roblox_tracker?timezone=Z` |
 | `ENCRYPTION_KEY` | recommended | Passphrase for cookie encryption. **Changing it makes every stored cookie undecryptable.** Falls back to a hard-coded development default — never run production without it. |
-| `ADMIN_USER_IDS` | no | Comma-separated Telegram user IDs granted the cross-account admin view |
+| `ADMIN_USER_IDS` | no | Comma-separated Telegram user IDs granted the cross-account admin view (does not apply to `/gamestats`) |
 | `NODE_ENV` | no | `development` (default) or `production` |
+| `TZ_NAME` | no | IANA time zone used to define `/gamestats` windows (`Asia/Jakarta` default). Only affects window boundaries; display stays WIB. |
 
 #### Polling, batching, and Roblox rate-limit tuning
 
@@ -79,6 +80,16 @@ Defaults suit a single connected account; the bot works unchanged without any of
 | `ROBLOX_COOLDOWN_MS` | `45000` | Cooldown opened by a 429 when `Retry-After` is absent or shorter. **Never doubles** per consecutive 429. |
 | `ROBLOX_COOLDOWN_MAX_MS` | `600000` | Hard ceiling for a cooldown, even when `Retry-After` asks for longer. |
 | `ROBLOX_ADAPTIVE_MAX_MULTIPLIER` | `4` | Max poll slow-down factor while penalised. |
+
+#### `/gamestats` tuning
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `GAMESTATS_MERGE_GAP_SECONDS` | `120` | Adjacent same-subject/same-universe sessions within this gap are merged into one displayed session (server hops split rows). Totals are unaffected. |
+| `GAMESTATS_MAX_SESSION_HOURS` | `12` | Sessions longer than this are flagged in the footer as possibly inflated by monitoring gaps. Read-only — never alters the numbers. |
+| `GAMESTATS_RESOLVE_TTL_MS` | `86400000` | Positive place→universe/name cache TTL (24 h). |
+| `GAMESTATS_RESOLVE_NEGATIVE_TTL_MS` | `300000` | Negative (unresolved place) cache TTL (5 min). |
+| `GAMESTATS_USER_SESSION_FETCH_CAP` | `5000` | Max raw rows fetched when building a `user:` merged session list. |
 
 Rate-limit behaviour is covered by a self-contained harness (stubbed transport, no network, no DB):
 
@@ -126,10 +137,11 @@ ROBLOX_COOKIE='...' node scripts/presence-probe.mjs
 | `/notify` | `/notify <username> [online\|offline\|game\|all]` | Enable notification filters |
 | `/unnotify` | `/unnotify <username> [online\|offline\|game\|all]` | Disable notification filters |
 | `/stats` | `/stats [username] [7d\|30d\|all]` | Playtime and presence breakdown |
+| `/gamestats` | `/gamestats <game URL> [most] [user:<name>]` | Per-game player-hours (all time / today / last 7 / last 30 days) and a paginated list of recent or top players. `most` sorts by total time; `user:<name>` restricts to one tracked friend/user and lists their individual sessions. Scoped to the requester's own account only |
 | `/history` | `/history [username] [DD-MM-YYYY\|all]` | Session history, paginated inline |
 | `/badges` | `/badges [username]` | Recent badges with award dates; defaults to the connected account's own username. For a target that is a friend of some connected account, the friend's cookie is preferred (friend-only badge visibility). Paginated inline via an in-memory cursor cache |
 
-`/start` and `/help` are the only commands that work without a connected account. `/setcookie` is what connects one. `/status`, `/stats`, `/history`, and `/list` bypass the account check for callers in `ADMIN_USER_IDS` and then aggregate across all connected accounts; `/track`, `/untrack`, `/notify`, `/unnotify`, `/sync`, and `/badges` always require a connected account, even for admins. `/list` also answers to `/tracked`.
+`/start` and `/help` are the only commands that work without a connected account. `/setcookie` is what connects one. `/status`, `/stats`, `/history`, and `/list` bypass the account check for callers in `ADMIN_USER_IDS` and then aggregate across all connected accounts; `/track`, `/untrack`, `/notify`, `/unnotify`, `/sync`, and `/badges` always require a connected account, even for admins. `/list` also answers to `/tracked`. `/gamestats` always requires a connected account and is **never** cross-account, even for admins: it only ever reads the requester's own tracked friends and users.
 
 ## Architecture
 
@@ -202,6 +214,7 @@ Endpoints used:
 - `POST users.roblox.com/v1/users`, `POST users.roblox.com/v1/usernames/users`
 - `POST presence.roblox.com/v1/presence/users`
 - `GET badges.roblox.com/v1/users/{userId}/badges`, `.../badges/awarded-dates`
+- `GET apis.roblox.com/universes/v1/places/{placeId}/universe`, `GET games.roblox.com/v1/games?universeIds={id}` — public, cookie-less `/gamestats` lookups (cached 24 h positive / 5 min negative). `universeId: null` in the first response means "not a game", and is a valid answer, not an error.
 
 ## Data model
 
@@ -217,6 +230,16 @@ Endpoints used:
 `GameSession.subjectType` and `PresenceSession.subjectType` are `SessionSubjectType` (`FRIEND` | `TRACKED`) and identify which table the subject came from. Deleting a `RobloxAccount` cascades to all of its friends, tracked users, and sessions.
 
 Presence state is cached on the subject rows (`lastPresence`, `lastGameId`, `lastLocation`, `lastSeenAt`) so change detection needs no extra query, and `lastNotifiedAt` drives notification debounce.
+
+### `/gamestats` semantics
+
+- **"All time" means tracked-since**, not lifetime Roblox playtime: it is bounded by the earliest `GameSession` row in scope. There is no backfill, so a newly connected account starts at zero.
+- **Windows are clipped, not "started-in"**: a session crossing a window edge (or local midnight) contributes only its in-window part. "Today" is calendar-based (since local midnight in `TZ_NAME`); "last 7 days" and "last 30 days" are **rolling** windows measured back from the current instant (`now − 7×24h`, `now − 30×24h`), matching `/stats`.
+- **The only remaining difference from `/stats`** is edge handling: `/stats` counts a session that *starts* in its window in full, while `/gamestats` counts only the part inside the window. They agree everywhere else (same rolling 7/30-day spans, same "today = local midnight"). "Today" can additionally differ from a plain 24-hour count because it is calendar-aligned, whereas `/stats` has no "today" concept at all.
+- **Grouping is by `universeId`** (the experience), so every sub-place of one experience counts together. Rows with a hidden place (`placeId = 0`, `universeId` null) and legacy-imported rows (no `universeId`) are excluded; when any are found in scope, the message footer says how many.
+- **Open sessions are capped** at the subject's last successful poll (`lastSeenAt`) for aggregation and display — this prevents bot downtime, skipped cycles, or throttle pauses from inflating an open session. Closed sessions always use their recorded `endTime`.
+- **Server hops are merged only in the `user:` session list** (`GAMESTATS_MERGE_GAP_SECONDS`): changing servers within one experience writes two adjacent rows, which are shown as one session. Totals always sum raw rows.
+- **Unfriending or untracking a user does not delete their sessions** — `GameSession` rows only cascade from `RobloxAccount`. But the scope is the account's *current* friends ∪ tracked users, so an unfriended/un-tracked subject silently drops out of `/gamestats` totals even though the rows remain (recoverable by re-adding them).
 
 ## Security notes
 

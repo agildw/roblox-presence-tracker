@@ -51,6 +51,19 @@ export function createRobloxClient(cookie: string): AxiosInstance {
   });
 }
 
+/**
+ * Creates an axios instance for **public** Roblox endpoints that need no
+ * authentication (place→universe resolution, game metadata). Deliberately
+ * carries no `Cookie` header: these calls must never send a stored credential,
+ * so a resolver failure can also never be caused by an invalid cookie.
+ */
+export function createPublicRobloxClient(): AxiosInstance {
+  return axios.create({
+    timeout: 10_000,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 // ── Request core ──────────────────────────────────────────────────────────────
 
 /**

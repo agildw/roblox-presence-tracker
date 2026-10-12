@@ -16,6 +16,7 @@ export function registerHelpCommand(bot: Bot): void {
         `/list — List your manually tracked users\n\n` +
         `*Analytics*\n` +
         `/stats — Weekly playtime breakdown\n` +
+        `/gamestats \\<game URL\\> \\[most\\] \\[user:\\<name\\>\\] — Per-game player-hours and recent players\n` +
         `/history \\<username\\> — Session history for a user\n` +
         `/badges \\<username\\> — Recent badges for a user`,
       { parse_mode: 'MarkdownV2' }
