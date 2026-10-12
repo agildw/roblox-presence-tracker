@@ -222,6 +222,13 @@ interface RenderContext {
   userSubject: ScopeSubject | null;
   page: number;
   now: Date;
+  /**
+   * The Telegram id of the user this message belongs to. Embedded in every
+   * button's callback_data so the handler can enforce owner-only presses. This
+   * MUST be the presser/requester's `ctx.from.id` (the same source the handler
+   * checks against) — never a DB id, a chat id, or the bot's own id.
+   */
+  ownerTelegramId: string;
 }
 
 /** Resolves the name to display: cache → stored session name → synthetic. */
@@ -406,6 +413,7 @@ function buildKeyboard(ctx: RenderContext, totalPages: number): InlineKeyboard |
       most: ctx.most,
       subjectId: ctx.userSubject?.subjectId ?? null,
       page: target,
+      telegramId: ctx.ownerTelegramId,
     });
 
   if (hasPrev) kb.text('« Prev', data(page - 1));
@@ -491,6 +499,7 @@ export interface RenderReuse {
 /** Shared entry: builds the message for a given account + parsed options. */
 async function renderForAccount(
   accountId: number,
+  ownerTelegramId: string,
   parsed: ParsedArgs,
   page: number,
   now: Date,
@@ -561,6 +570,7 @@ async function renderForAccount(
     userSubject,
     page,
     now,
+    ownerTelegramId,
   };
 
   if (userSubject) return buildUserMode(scope, subjects, renderCtx);
@@ -574,6 +584,36 @@ async function replyHtml(ctx: Context, msg: BuiltMessage): Promise<void> {
   } else {
     await ctx.reply(msg.text, { parse_mode: 'HTML' });
   }
+}
+
+/** Why a callback press was rejected. Never carries credential material. */
+export type CallbackRejectionReason = 'owner_mismatch' | 'malformed' | 'stale_or_out_of_scope';
+
+/**
+ * Emits one warn-level line per rejected callback press, so a rejection is never
+ * silent again. Logs only ids and a short reason — never anything cookie-related
+ * (the callback path never touches the cookie at all).
+ */
+function logCallbackRejection(
+  reason: CallbackRejectionReason,
+  presserId: string,
+  data: string,
+  parsed?: { telegramId: string; page: number; userMode: boolean; most: boolean },
+  extra?: string,
+): void {
+  const parts = [
+    `reason=${reason}`,
+    `presser=${presserId}`,
+    `encoded=${parsed ? parsed.telegramId : '<unparsed>'}`,
+    `page=${parsed ? parsed.page : '?'}`,
+    `mode=${parsed ? (parsed.userMode ? 'user' : 'all') : '?'}`,
+    `sort=${parsed ? (parsed.most ? 'most' : 'recent') : '?'}`,
+  ];
+  if (extra) parts.push(`detail=${extra}`);
+  // Include the raw data length (not the data itself) to aid triage without
+  // dumping user ids/place ids into logs verbatim beyond what is needed.
+  parts.push(`dataLen=${data.length}`);
+  console.warn(`[GameStats] callback rejected: ${parts.join(' ')}`);
 }
 
 /**
@@ -598,6 +638,7 @@ async function requireAccountId(ctx: Context): Promise<number | null> {
 
 export function registerGameStatsCommand(bot: Bot): void {
   bot.command('gamestats', async (ctx) => {
+    const ownerTelegramId = String(ctx.from?.id ?? '');
     const parsed = parseArgs(ctx.match);
     if (!parsed.ok) {
       await ctx.reply(
@@ -610,7 +651,7 @@ export function registerGameStatsCommand(bot: Bot): void {
     const accountId = await requireAccountId(ctx);
     if (accountId === null) return;
 
-    const msg = await renderForAccount(accountId, parsed.args, 0, new Date());
+    const msg = await renderForAccount(accountId, ownerTelegramId, parsed.args, 0, new Date());
     await replyHtml(ctx, msg);
   });
 
@@ -625,12 +666,15 @@ export function registerGameStatsCommand(bot: Bot): void {
 
     const parsed = parseCallbackData(data);
     if (!parsed) {
+      logCallbackRejection('malformed', presserId, data);
       await ctx.answerCallbackQuery('This button is out of date.');
       return;
     }
 
-    // Owner check: the telegram id in the data must match the presser.
+    // Owner check: the id encoded at render time must equal the presser's
+    // Telegram id. Both sides are strings from ctx.from.id.
     if (parsed.telegramId !== presserId) {
+      logCallbackRejection('owner_mismatch', presserId, data, parsed);
       await ctx.answerCallbackQuery("This isn't your message.");
       return;
     }
@@ -638,6 +682,7 @@ export function registerGameStatsCommand(bot: Bot): void {
     // Scope account is derived from the presser, never from callback data.
     const account = await accountService.getAccount(presserId);
     if (!account) {
+      logCallbackRejection('stale_or_out_of_scope', presserId, data, parsed, 'no account');
       await ctx.answerCallbackQuery('No account connected.');
       return;
     }
@@ -650,11 +695,18 @@ export function registerGameStatsCommand(bot: Bot): void {
       userFilter: null,
     };
     const reusedName = gameResolver.cachedNameForPlace(parsed.placeId);
-    const rebuilt = await renderForAccount(account.id, args, parsed.page, new Date(), {
-      universeId: parsed.universeId,
-      subjectId: parsed.subjectId,
-      gameName: reusedName,
-    });
+    const rebuilt = await renderForAccount(
+      account.id,
+      presserId,
+      args,
+      parsed.page,
+      new Date(),
+      {
+        universeId: parsed.universeId,
+        subjectId: parsed.subjectId,
+        gameName: reusedName,
+      },
+    );
     try {
       if (rebuilt.keyboard) {
         await ctx.editMessageText(rebuilt.text, { parse_mode: 'HTML', reply_markup: rebuilt.keyboard });
