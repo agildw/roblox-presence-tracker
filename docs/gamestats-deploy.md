@@ -181,10 +181,52 @@ DATABASE_URL='mysql://user:pass@host:3306/db?timezone=Z' \
 ## 5. Build & type checks
 
 - [ ] `npx tsc --noEmit`
-- [ ] `node --import tsx --test src/bot/commands/gamestats.test.ts` → 24 passing.
+- [ ] `node --import tsx --test src/bot/commands/gamestats.test.ts` → **25 passing**
+- [ ] `node --import tsx --test src/bot/commands/gamestats.callback.test.ts` → **11 passing**
+      (owner accepted / non-owner rejected, Next+Prev in all three modes, page edges,
+      ≤64-byte callback_data, build→parse→handler roundtrip, rejection logging)
       (Note: the pre-existing `presence.service.test.ts` / `auth-health.service.test.ts`
       pass but keep the process alive due to an open rate-limiter timer — a pre-existing
       issue, unrelated to this feature.)
+
+## 5b. Redeploy after a code fix (bot-only, no migration)
+
+A `/gamestats` change that does not touch the schema needs no migration step:
+
+```bash
+git pull                     # or: git checkout feat/gamestats-command && git pull
+npm ci                       # only if dependencies changed
+npx prisma generate          # only if schema.prisma changed (not required for logic fixes)
+npx tsc --noEmit             # must be clean
+# restart the process (systemd):
+sudo systemctl restart roblox-tracker    # adjust the unit name to your deployment
+# or, if run under a process manager / container, restart that instead.
+```
+
+- [ ] Confirm startup logs show `[App] Starting Roblox Tracker Bot...` and the workers start.
+- [ ] Run the interactive smoke tests below.
+
+## 5c. Pagination smoke tests (Next/Prev, all modes)
+
+Do these in a **private chat** first, then repeat in a **group** (still scoped to the sender).
+
+| # | Mode | Steps | Expect |
+| --- | --- | --- | --- |
+| P1 | default | `/gamestats <game with >10 players>`; press **Next »** | Message edits to page 2; **no** "This isn't your message."; page chip `2/N`; **« Prev** present |
+| P2 | default | from P1 press **« Prev** | Back to page 1; chip `1/N`; **« Prev** absent |
+| P3 | default | press the page chip `x/N` | Nothing changes (no-op ack), no rejection |
+| P4 | `most` | `/gamestats <game> most`; press **Next »** then **« Prev** | Same as P1/P2; list stays sorted by total time |
+| P5 | `user:` | `/gamestats <game> user:<friend-with->10-sessions>`; press **Next »** then **« Prev** | Edits through session pages; no rejection |
+| P6 | last page | on any mode, go to the final page | **Next »** absent; **« Prev** present; chip `N/N` |
+
+## 5d. Ownership smoke test (second Telegram account)
+
+- [ ] Account **A** (owner) runs `/gamestats <game>` so the message with buttons appears.
+- [ ] Account **B** presses **Next »** on A's message → bot answers **"This isn't your message."**
+      and the message is **not** edited. (B must not see A's data.)
+- [ ] Check the server log for a warn line:
+      `[GameStats] callback rejected: reason=owner_mismatch presser=<B-id> encoded=<A-id> …`
+- [ ] In the same window, have A press **Next »** → it works, and **no** rejection line is logged.
 
 ## 6. Telegram smoke tests
 
