@@ -18,7 +18,10 @@
  *  - **Hidden and legacy rows excluded:** only rows with a non-null `universeId`
  *    match, by construction (we filter `universeId = ?`).
  *  - **Scope** is always one `robloxAccountId` (the requester's) intersected with
- *    the current scope subject ids (friends ∪ tracked users).
+ *    the durable scope subject ids (current friends ∪ tracked users ∪ every
+ *    `SubjectIdentity` row the account has ever observed). History therefore
+ *    survives an unfriend or `/untrack`; it is still never shared across
+ *    accounts.
  *
  * Every statement is built with `Prisma.sql` tagged templates, so dynamic values
  * bind as parameters and only `Prisma.sql`/`Prisma.join` fragments compose.
@@ -176,7 +179,9 @@ export function parseDbDate(value: Date | string): Date {
 /**
  * Effective end of an open session is capped at the subject's last *observed*
  * moment. Two sources, whichever is later:
- *   - `lastPolledAt` — the subject's `lastSeenAt` (every answered presence poll);
+ *   - `lastPolledAt` — the subject's `lastSeenAt` from the subject rows (friends ∪
+ *     tracked users, plus the durable `SubjectIdentity` row that survives an
+ *     unfriend/untrack);
  *   - `lastClosedEnd` — the end of the subject's most recent *closed* session in
  *     the tracker (a hard floor even when the subject row is gone, e.g. after an
  *     unfriend: the rows survive but `lastSeenAt` no longer advances).
@@ -205,11 +210,15 @@ function effectiveEnd(now: Date): Prisma.Sql {
 /**
  * Derived table `subjectId → (lastPolledAt, lastClosedEnd)` for one account.
  *
- * `lastPolledAt` comes from the subject rows (friends ∪ tracked users);
+ * `lastPolledAt` comes from the subject rows (friends ∪ tracked users ∪ durable
+ * `SubjectIdentity` rows — the latter survive unfriending/untracking);
  * `lastClosedEnd` is the newest closed-session end for that subject, which
  * survives unfriends/untracks (those only delete the subject row, not the
  * sessions). The outer join is a LEFT JOIN so a subject with sessions but no
  * current row still gets its `lastClosedEnd`.
+ *
+ * Every branch is filtered by `robloxAccountId`, so a subject present in two
+ * connected accounts never borrows the other account's poll time.
  */
 function scopeSubjectJoin(accountId: number): Prisma.Sql {
   return Prisma.sql`LEFT JOIN (
@@ -222,6 +231,9 @@ function scopeSubjectJoin(accountId: number): Prisma.Sql {
       UNION ALL
       SELECT robloxUserId AS subjectId, MAX(lastSeenAt) AS lastPolledAt, NULL AS lastClosedEnd
         FROM TrackedUser WHERE robloxAccountId = ${accountId} GROUP BY robloxUserId
+      UNION ALL
+      SELECT robloxUserId AS subjectId, MAX(lastSeenAt) AS lastPolledAt, NULL AS lastClosedEnd
+        FROM SubjectIdentity WHERE robloxAccountId = ${accountId} GROUP BY robloxUserId
       UNION ALL
       SELECT subjectId AS subjectId, NULL AS lastPolledAt, MAX(endTime) AS lastClosedEnd
         FROM GameSession

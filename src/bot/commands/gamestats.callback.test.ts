@@ -105,6 +105,14 @@ function installStubs(): void {
       displayName: `User ${p.subjectId}`,
     }));
   prismaAny['trackedUser']!['findMany'] = async () => [];
+  // Durable identity table: no history beyond the current friends in this
+  // fixture, so the scope stays exactly the friend list.
+  prismaAny['subjectIdentity']!['findMany'] = async () => [];
+  prismaAny['subjectIdentity']!['findFirst'] = async () => null;
+  // `resolveByName` checks the current lists before durable history; with no
+  // current member matching, both must answer null.
+  prismaAny['friend']!['findFirst'] = async () => null;
+  prismaAny['trackedUser']!['findFirst'] = async () => null;
   prismaAny['gameSession']!['findFirst'] = async () => ({ gameName: 'Run a Restaurant!' });
 
   const accountAny = accountService as unknown as Record<string, unknown>;
@@ -450,4 +458,102 @@ test('user: mode non-owner is still rejected', async () => {
   await captured.callback!(intruder);
   assert.ok(intruder.answers.some((a) => String(a).includes("isn't your message")));
   assert.equal(intruder.edits.length, 0);
+});
+
+// ── Historical (unfriended / untracked) subjects ─────────────────────────────
+
+test('user: mode resolves a user who is neither a friend nor tracked', async () => {
+  installStubs();
+  const prismaAny = prisma as unknown as Record<string, Record<string, unknown>>;
+
+  // Nobody is a current friend or tracked user; the only trace of the subject
+  // is the durable identity row left behind by `/untrack`.
+  const HISTORICAL_ID = 7_777_000_000n;
+  prismaAny['friend']!['findMany'] = async () => [];
+  prismaAny['trackedUser']!['findMany'] = async () => [];
+  prismaAny['subjectIdentity']!['findMany'] = async () => [
+    { robloxUserId: HISTORICAL_ID, username: 'goneuser', displayName: 'Gone User' },
+  ];
+  prismaAny['subjectIdentity']!['findFirst'] = async () => ({
+    robloxAccountId: ACCOUNT_ID,
+    robloxUserId: HISTORICAL_ID,
+    username: 'goneuser',
+    displayName: 'Gone User',
+  });
+
+  let receivedScopeIds: bigint[] = [];
+  const statsAny = gameStatsService as unknown as Record<string, unknown>;
+  statsAny['getWindowTotals'] = async (scope: { subjectIds: bigint[] }) => {
+    receivedScopeIds = scope.subjectIds;
+    return {
+      allSeconds: 3600,
+      todaySeconds: 0,
+      last7Seconds: 0,
+      last30Seconds: 3600,
+      playerCount: 1,
+      firstSeen: new Date('2026-09-01T00:00:00Z'),
+    };
+  };
+  statsAny['getUserSessions'] = async () => [
+    {
+      id: 1,
+      startTime: new Date('2026-09-01T10:00:00Z'),
+      endTime: new Date('2026-09-01T11:00:00Z'),
+      open: false,
+    },
+  ];
+  statsAny['countLegacyRows'] = async () => 0;
+
+  const { bot, captured } = makeFakeBot();
+  registerGameStatsCommand(bot as never);
+
+  const ctx = makeCtx({ fromId: 12345, match: `${PLACE_ID} user:goneuser` });
+  await captured.command!(ctx);
+
+  assert.equal(ctx.replies.length, 1, 'the command replies instead of rejecting the user');
+  const text = ctx.replies[0] ?? '';
+  assert.ok(!text.includes('not found'), `unexpected rejection: ${text}`);
+  assert.ok(text.includes('Gone User'), 'the historical user is labelled with their known name');
+  assert.ok(text.includes('1.0 h'), 'historical playtime is rendered');
+  assert.ok(receivedScopeIds.includes(HISTORICAL_ID), 'historical subject is in the query scope');
+});
+
+test('user: mode resolves a previous username after a rename', async () => {
+  installStubs();
+  const prismaAny = prisma as unknown as Record<string, Record<string, unknown>>;
+  const HISTORICAL_ID = 7_777_000_001n;
+
+  prismaAny['friend']!['findMany'] = async () => [];
+  prismaAny['trackedUser']!['findMany'] = async () => [];
+  prismaAny['subjectIdentity']!['findMany'] = async () => [];
+  // The identity lookup matches the OLD handle via the username history, and
+  // reports the user's CURRENT handle for display.
+  prismaAny['subjectIdentity']!['findFirst'] = async () => ({
+    robloxAccountId: ACCOUNT_ID,
+    robloxUserId: HISTORICAL_ID,
+    username: 'newhandle',
+    displayName: 'Renamed User',
+  });
+
+  const statsAny = gameStatsService as unknown as Record<string, unknown>;
+  statsAny['getWindowTotals'] = async () => ({
+    allSeconds: 0,
+    todaySeconds: 0,
+    last7Seconds: 0,
+    last30Seconds: 0,
+    playerCount: 1,
+    firstSeen: null,
+  });
+  statsAny['getUserSessions'] = async () => [];
+  statsAny['countLegacyRows'] = async () => 0;
+
+  const { bot, captured } = makeFakeBot();
+  registerGameStatsCommand(bot as never);
+
+  const ctx = makeCtx({ fromId: 12345, match: `${PLACE_ID} user:oldhandle` });
+  await captured.command!(ctx);
+
+  assert.equal(ctx.replies.length, 1);
+  assert.ok(!(ctx.replies[0] ?? '').includes('not found'), 'old handle still resolves');
+  assert.ok((ctx.replies[0] ?? '').includes('Renamed User'));
 });

@@ -1,5 +1,6 @@
 import fs from "fs";
 import { prisma } from './lib/prisma.js';
+import { subjectIdentityService } from './services/identity/subject-identity.service.js';
 
 interface OldSession {
   startTime: number;
@@ -99,6 +100,13 @@ async function migrate() {
       console.log(`- Inserted batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(sessionsToInsert.length / batchSize)}`);
     }
   }
+
+  // Give every imported subject a durable identity row, so the imported
+  // history is resolvable by Roblox user id (and by username, when the friend /
+  // tracked rows carry one) before the next startup backfill.
+  console.log("Ensuring subject identities...");
+  const ensured = await subjectIdentityService.backfill(robloxAccountId);
+  console.log(`- Subject identities ensured: ${ensured}`);
 
   console.log("Migration successfully completed.");
 }

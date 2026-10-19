@@ -66,6 +66,9 @@ async function cleanup(): Promise<void> {
   await prisma.gameSession.deleteMany({ where: { robloxAccountId: FIX_ACCOUNT } });
   await prisma.friend.deleteMany({ where: { robloxAccountId: FIX_ACCOUNT } });
   await prisma.trackedUser.deleteMany({ where: { robloxAccountId: FIX_ACCOUNT } });
+  // Durable identity rows cascade from RobloxAccount, but remove them first so
+  // the fixture is fully self-contained.
+  await prisma.subjectIdentity.deleteMany({ where: { robloxAccountId: FIX_ACCOUNT } });
   await prisma.robloxAccount.deleteMany({ where: { id: FIX_ACCOUNT } });
   await prisma.telegramUser.deleteMany({ where: { telegramId: 'gamestats-selftest' } });
 }

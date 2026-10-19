@@ -132,6 +132,8 @@ EXPLAIN SELECT gs.subjectId,
       UNION ALL
       SELECT robloxUserId AS subjectId, MAX(lastSeenAt) AS lastPolledAt, NULL AS lastClosedEnd FROM TrackedUser WHERE robloxAccountId = <accountId> GROUP BY robloxUserId
       UNION ALL
+      SELECT robloxUserId AS subjectId, MAX(lastSeenAt) AS lastPolledAt, NULL AS lastClosedEnd FROM SubjectIdentity WHERE robloxAccountId = <accountId> GROUP BY robloxUserId
+      UNION ALL
       SELECT subjectId AS subjectId, NULL AS lastPolledAt, MAX(endTime) AS lastClosedEnd FROM GameSession WHERE robloxAccountId = <accountId> AND endTime IS NOT NULL GROUP BY subjectId
     ) s GROUP BY s.subjectId
   ) sub ON sub.subjectId = gs.subjectId

@@ -5,8 +5,11 @@
  *   /gamestats <roblox game URL or place id> [most] [user:<username>]
  *
  * Scope is strictly the requester's own account: the RobloxAccount derived from
- * `ctx.from.id`, intersected with that account's current friends and tracked
- * users. Admin cross-account aggregation is deliberately NOT enabled here.
+ * `ctx.from.id`, intersected with the durable set of subjects that account has
+ * ever observed (current friends ∪ tracked users ∪ `SubjectIdentity` history).
+ * Historical sessions therefore remain visible after an unfriend or
+ * `/untrack`, while admin cross-account aggregation is deliberately NOT enabled
+ * here.
  *
  * The command is read-only: it never writes sessions, never changes presence,
  * and the callback path makes no Roblox API calls at all (a game's display name
@@ -24,6 +27,7 @@ import {
   type ScopeContext,
 } from '../../services/analytics/gamestats.service.js';
 import { gameResolver } from '../../services/roblox/game-resolver.js';
+import { subjectIdentityService } from '../../services/identity/subject-identity.service.js';
 import { computeStatsWindows } from '../../lib/window.js';
 import { formatWIB, formatDuration } from '../../lib/date.js';
 import { escapeHtml } from '../../lib/html.js';
@@ -128,11 +132,22 @@ interface ScopeSubject {
 }
 
 /**
- * Builds the scope for one account: its current friends ∪ tracked users.
- * Never crosses into another Telegram user's account.
+ * Builds the scope for one account: current friends ∪ tracked users, extended
+ * with every Roblox user the account has a durable `SubjectIdentity` for.
+ *
+ * The identity rows are what keep `/gamestats` correct after a user is
+ * unfriended or `/untrack`ed: their historical sessions remain in scope. Only
+ * this account's rows are ever read, so nothing leaks across connected accounts.
+ *
+ * When `narrowToSubject` is supplied (a `user:` view or a pagination callback
+ * whose subject id is already known), the identity scan is limited to that one
+ * Roblox user id instead of loading the account's whole history.
  */
-async function loadScopeSubjects(accountId: number): Promise<Map<bigint, ScopeSubject>> {
-  const [friends, tracked] = await Promise.all([
+async function loadScopeSubjects(
+  accountId: number,
+  narrowToSubject?: bigint | null,
+): Promise<Map<bigint, ScopeSubject>> {
+  const [friends, tracked, identities] = await Promise.all([
     prisma.friend.findMany({
       where: { robloxAccountId: accountId },
       select: { friendUserId: true, username: true, displayName: true },
@@ -141,9 +156,21 @@ async function loadScopeSubjects(accountId: number): Promise<Map<bigint, ScopeSu
       where: { robloxAccountId: accountId },
       select: { robloxUserId: true, username: true, displayName: true },
     }),
+    prisma.subjectIdentity.findMany({
+      where: {
+        robloxAccountId: accountId,
+        ...(narrowToSubject === undefined || narrowToSubject === null
+          ? {}
+          : { robloxUserId: narrowToSubject }),
+      },
+      select: { robloxUserId: true, username: true, displayName: true },
+    }),
   ]);
 
   const map = new Map<bigint, ScopeSubject>();
+  // Order matters for name resolution: current members are inserted first (and
+  // keep the original friends-then-tracked precedence), then historical
+  // identities fill in only the users with no current row.
   for (const f of friends) {
     map.set(f.friendUserId, {
       subjectId: f.friendUserId,
@@ -161,14 +188,31 @@ async function loadScopeSubjects(accountId: number): Promise<Map<bigint, ScopeSu
       kind: 'tracked',
     });
   }
+  for (const i of identities) {
+    if (map.has(i.robloxUserId)) continue;
+    map.set(i.robloxUserId, {
+      subjectId: i.robloxUserId,
+      username: i.username,
+      displayName: i.displayName,
+      kind: 'friend',
+    });
+  }
   return map;
 }
 
-/** Case-insensitive match on username or displayName, `@` stripped. Never calls Roblox. */
-function findSubjectByName(
+/**
+ * Case-insensitive match on username or displayName, `@` stripped. Never calls
+ * Roblox.
+ *
+ * The in-memory scope covers current and historical handles of every known
+ * subject; when nothing matches (e.g. a user renamed after their last identity
+ * refresh), the durable username history is consulted before giving up.
+ */
+async function findSubjectByName(
+  accountId: number,
   subjects: Map<bigint, ScopeSubject>,
   name: string,
-): ScopeSubject | null {
+): Promise<ScopeSubject | null> {
   const needle = name.replace(/^@/, '').toLowerCase();
   for (const subject of subjects.values()) {
     const fields = [subject.username, subject.displayName].filter(
@@ -176,7 +220,17 @@ function findSubjectByName(
     );
     if (fields.some((v) => v.toLowerCase() === needle)) return subject;
   }
-  return null;
+
+  const resolved = await subjectIdentityService.resolveByName(accountId, name);
+  if (!resolved) return null;
+  const existing = subjects.get(resolved.subjectId);
+  if (existing) return existing;
+  return {
+    subjectId: resolved.subjectId,
+    username: resolved.username,
+    displayName: resolved.displayName,
+    kind: resolved.kind,
+  };
 }
 
 // ── Formatting ────────────────────────────────────────────────────────────────
@@ -288,7 +342,13 @@ async function buildSummaryMode(scope: ScopeContext, subjects: Map<bigint, Scope
   for (let i = 0; i < page.players.length; i++) {
     const p = page.players[i] as (typeof page.players)[number];
     const subject = subjects.get(p.subjectId);
-    const kind = subject?.kind === 'tracked' ? 'tracked' : 'friend';
+    // Users resolved purely from identity history are no longer on either
+    // current list, so they are labelled honestly as historical.
+    const kind = !subject
+      ? 'history'
+      : subject.kind === 'tracked'
+        ? 'tracked'
+        : 'friend';
     const when = p.stillPlaying ? 'still playing' : relativeTime(p.lastSeenAt, ctx.now);
     lines.push(
       `${rankOffset + i + 1}. ${subjectLabel(subject, p.subjectId)} — ${formatHours(p.totalSeconds)} — ${when} <i>[${kind}]</i>`,
@@ -533,24 +593,35 @@ async function renderForAccount(
     cachedName = resolved.name;
   }
 
-  const subjects = await loadScopeSubjects(accountId);
-
-  let userSubject: ScopeSubject | null = null;
+  // 1. Resolve the requested user (if any). Resolution uses any username the
+  //    user has ever had, from the durable identity table — not just the current
+  //    friend/tracked lists.
+  let requestedSubject: ScopeSubject | null = null;
   if (reuse && reuse.subjectId !== null) {
-    userSubject = subjects.get(reuse.subjectId) ?? {
+    requestedSubject = {
       subjectId: reuse.subjectId,
       username: null,
       displayName: null,
       kind: 'friend',
     };
   } else if (parsed.userFilter !== null) {
-    userSubject = findSubjectByName(subjects, parsed.userFilter);
-    if (!userSubject) {
+    const allSubjects = await loadScopeSubjects(accountId);
+    requestedSubject = await findSubjectByName(accountId, allSubjects, parsed.userFilter);
+    if (!requestedSubject) {
       return {
         text: `🔍 User "<b>${escapeHtml(parsed.userFilter)}</b>" not found in your tracked friends or users.`,
         keyboard: null,
       };
     }
+  }
+
+  // 2. Load the scope: current friends ∪ tracked ∪ the requested user's history
+  //    (or the whole durable scope in summary mode).
+  const subjects = await loadScopeSubjects(accountId, requestedSubject?.subjectId);
+
+  let userSubject: ScopeSubject | null = null;
+  if (requestedSubject) {
+    userSubject = subjects.get(requestedSubject.subjectId) ?? requestedSubject;
   }
 
   const scope: ScopeContext = {

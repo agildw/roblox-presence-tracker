@@ -1,13 +1,15 @@
+import { Prisma } from '../../generated/prisma/client.js';
 import { prisma } from '../../lib/prisma.js';
 import { robloxService } from '../roblox/roblox.service.js';
 import { accountService } from '../account/account.service.js';
+import { subjectIdentityService } from '../identity/subject-identity.service.js';
 
 export const analyticsService = {
   /**
    * Get all active game sessions for an account (or globally if accountId is null)
    */
   async getActiveSessions(accountId: number | null) {
-    const where: any = { endTime: null };
+    const where: Prisma.GameSessionWhereInput = { endTime: null };
     if (accountId !== null) {
       where.robloxAccountId = accountId;
     }
@@ -23,7 +25,7 @@ export const analyticsService = {
    * Get all active website sessions for an account (or globally if accountId is null)
    */
   async getActiveWebsiteSessions(accountId: number | null) {
-    const where: any = {
+    const where: Prisma.PresenceSessionWhereInput = {
       presenceType: 1, // 1 = Website
       endTime: null,
     };
@@ -42,7 +44,7 @@ export const analyticsService = {
    * Get recent completed game sessions
    */
   async getRecentSessions(accountId: number | null, limit = 10, subjectId?: bigint, offset = 0) {
-    const where: any = {
+    const where: Prisma.GameSessionWhereInput = {
       endTime: { not: null },
     };
     if (accountId !== null) {
@@ -67,7 +69,7 @@ export const analyticsService = {
    * Get total playtime grouped by game over the last N days
    */
   async getPlaytimeStats(accountId: number | null, days: number | 'all' = 7, subjectId?: bigint) {
-    const where: any = {
+    const where: Prisma.GameSessionWhereInput = {
       duration: { not: null },
     };
     if (accountId !== null) {
@@ -108,7 +110,7 @@ export const analyticsService = {
    * Get total presence playtime grouped by presence type over the last N days
    */
   async getPresenceStats(accountId: number | null, days: number | 'all' = 7, subjectId?: bigint) {
-    const where: any = {
+    const where: Prisma.PresenceSessionWhereInput = {
       duration: { not: null },
     };
     if (accountId !== null) {
@@ -157,7 +159,7 @@ export const analyticsService = {
     const nextDay = new Date(targetDate);
     nextDay.setDate(nextDay.getDate() + 1);
 
-    const where: any = {
+    const where: Prisma.PresenceSessionWhereInput = {
       subjectId,
       startTime: {
         gte: targetDate,
@@ -201,7 +203,7 @@ export const analyticsService = {
     const nextDay = new Date(targetDate);
     nextDay.setDate(nextDay.getDate() + 1);
 
-    const where: any = {
+    const where: Prisma.GameSessionWhereInput = {
       startTime: {
         gte: targetDate,
         lt: nextDay,
@@ -228,21 +230,28 @@ export const analyticsService = {
   },
 
   /**
-   * Helper to fetch names for a list of subjectIds
+   * Helper to fetch names for a list of subjectIds.
+   *
+   * Resolution order per id: current Friend/TrackedUser row → durable
+   * SubjectIdentity row (survives unfriend/untrack) → newest stored session
+   * name. Unlike the original implementation, subjects that are no longer in
+   * the current lists still get a human-readable label.
    */
   async getSubjectNames(accountId: number | null, subjectIds: bigint[]): Promise<Map<bigint, string>> {
     const map = new Map<bigint, string>();
     if (subjectIds.length === 0) return map;
 
-    const friendWhere: any = { friendUserId: { in: subjectIds } };
-    const trackedWhere: any = { robloxUserId: { in: subjectIds } };
+    const friendWhere: Prisma.FriendWhereInput = { friendUserId: { in: subjectIds } };
+    const trackedWhere: Prisma.TrackedUserWhereInput = { robloxUserId: { in: subjectIds } };
+    const identityWhere: Prisma.SubjectIdentityWhereInput = { robloxUserId: { in: subjectIds } };
 
     if (accountId !== null) {
       friendWhere.robloxAccountId = accountId;
       trackedWhere.robloxAccountId = accountId;
+      identityWhere.robloxAccountId = accountId;
     }
 
-    const [friends, tracked] = await Promise.all([
+    const [friends, tracked, identities] = await Promise.all([
       prisma.friend.findMany({
         where: friendWhere,
         select: { friendUserId: true, displayName: true, username: true },
@@ -250,9 +259,18 @@ export const analyticsService = {
       prisma.trackedUser.findMany({
         where: trackedWhere,
         select: { robloxUserId: true, displayName: true, username: true },
-      })
+      }),
+      prisma.subjectIdentity.findMany({
+        where: identityWhere,
+        select: { robloxUserId: true, displayName: true, username: true },
+      }),
     ]);
 
+    for (const i of identities) {
+      const dName = i.displayName || 'Unknown';
+      const uName = i.username || 'unknown';
+      map.set(i.robloxUserId, `${dName} (@${uName})`);
+    }
     for (const f of friends) {
       map.set(f.friendUserId, `${f.displayName} (@${f.username})`);
     }
@@ -265,44 +283,16 @@ export const analyticsService = {
   },
 
   /**
-   * Find a subject (Friend or TrackedUser) by username or displayName (case-insensitive)
+   * Find a subject by username or displayName (case-insensitive).
+   *
+   * Membership in the current Friend/TrackedUser lists is NOT required: the
+   * durable SubjectIdentity table (and its username history) is consulted
+   * too, so `/history`, `/stats`, and `/gamestats` keep working after the user
+   * is unfriended or `/untrack`ed. Every lookup stays scoped to `accountId`
+   * (or is global for the admin path, exactly as before).
    */
   async getSubjectByName(accountId: number | null, name: string) {
-    const normalized = name.toLowerCase().replace('@', '');
-
-    const friendWhere: any = {
-      OR: [
-        { username: { equals: normalized } },
-        { displayName: { equals: name } }
-      ]
-    };
-    const trackedWhere: any = {
-      OR: [
-        { username: { equals: normalized } },
-        { displayName: { equals: name } }
-      ]
-    };
-
-    if (accountId !== null) {
-      friendWhere.robloxAccountId = accountId;
-      trackedWhere.robloxAccountId = accountId;
-    }
-
-    // 1. Try friends
-    const friend = await prisma.friend.findFirst({
-      where: friendWhere,
-      select: { friendUserId: true }
-    });
-    if (friend) return friend.friendUserId;
-
-    // 2. Try tracked users
-    const tracked = await prisma.trackedUser.findFirst({
-      where: trackedWhere,
-      select: { robloxUserId: true }
-    });
-    if (tracked) return tracked.robloxUserId;
-
-    return null;
+    return (await subjectIdentityService.resolveByName(accountId, name))?.subjectId ?? null;
   },
 
   /**
@@ -336,26 +326,52 @@ export const analyticsService = {
   },
 
   /**
-   * Helper to get lastSeenAt from the database for a subject
+   * Helper to get lastSeenAt from the database for a subject.
+   *
+   * Falls back to the newest stored session when the subject is no longer in
+   * the current lists, so the "Last Online (from tracker cache)" line keeps
+   * working for unfriended/untracked users.
    */
   async getSubjectLastSeenAt(accountId: number | null, subjectId: bigint): Promise<Date | null> {
-    const friendWhere: any = { friendUserId: subjectId };
-    const trackedWhere: any = { robloxUserId: subjectId };
+    const friendWhere: Prisma.FriendWhereInput = { friendUserId: subjectId };
+    const trackedWhere: Prisma.TrackedUserWhereInput = { robloxUserId: subjectId };
+    const identityWhere: Prisma.SubjectIdentityWhereInput = { robloxUserId: subjectId };
+    const gameWhere: Prisma.GameSessionWhereInput = { subjectId };
+    const presenceWhere: Prisma.PresenceSessionWhereInput = { subjectId };
 
     if (accountId !== null) {
       friendWhere.robloxAccountId = accountId;
       trackedWhere.robloxAccountId = accountId;
+      identityWhere.robloxAccountId = accountId;
+      gameWhere.robloxAccountId = accountId;
+      presenceWhere.robloxAccountId = accountId;
     }
 
-    const [friend, tracked] = await Promise.all([
+    const [friend, tracked, identity, game, presence] = await Promise.all([
       prisma.friend.findFirst({ where: friendWhere, select: { lastSeenAt: true }, orderBy: { lastSeenAt: 'desc' } }),
-      prisma.trackedUser.findFirst({ where: trackedWhere, select: { lastSeenAt: true }, orderBy: { lastSeenAt: 'desc' } })
+      prisma.trackedUser.findFirst({ where: trackedWhere, select: { lastSeenAt: true }, orderBy: { lastSeenAt: 'desc' } }),
+      prisma.subjectIdentity.findFirst({ where: identityWhere, select: { lastSeenAt: true } }),
+      prisma.gameSession.findFirst({
+        where: gameWhere,
+        select: { endTime: true },
+        orderBy: [{ startTime: 'desc' }, { id: 'desc' }],
+      }),
+      prisma.presenceSession.findFirst({
+        where: presenceWhere,
+        select: { endTime: true },
+        orderBy: [{ startTime: 'desc' }, { id: 'desc' }],
+      }),
     ]);
 
-    const d1 = friend?.lastSeenAt?.getTime() || 0;
-    const d2 = tracked?.lastSeenAt?.getTime() || 0;
+    const candidates = [
+      friend?.lastSeenAt,
+      tracked?.lastSeenAt,
+      identity?.lastSeenAt,
+      game?.endTime,
+      presence?.endTime,
+    ].filter((d): d is Date => d instanceof Date);
 
-    if (d1 === 0 && d2 === 0) return null;
-    return new Date(Math.max(d1, d2));
+    if (candidates.length === 0) return null;
+    return new Date(Math.max(...candidates.map((d) => d.getTime())));
   }
 };

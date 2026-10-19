@@ -99,6 +99,13 @@ function installStubs(
   ];
   prismaAny['friend']!['findMany'] = async () => friends;
   prismaAny['trackedUser']!['findMany'] = async () => [];
+  // Identity bookkeeping (durable history) is stub-only here: the focus of this
+  // suite is the partial-data invariant, not identity persistence.
+  prismaAny['subjectIdentity']!['findMany'] = async () => [];
+  prismaAny['subjectIdentity']!['findFirst'] = async () => null;
+  prismaAny['subjectIdentity']!['upsert'] = async () => ({ id: 1 });
+  prismaAny['subjectUsername']!['updateMany'] = async () => ({ count: 0 });
+  prismaAny['subjectUsername']!['upsert'] = async () => ({ id: 1 });
   prismaAny['friend']!['update'] = async (args: { where: { id: number } }) => {
     rec.updates.push({ model: 'friend', id: args.where.id });
     return {};
