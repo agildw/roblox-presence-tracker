@@ -136,12 +136,12 @@ ROBLOX_COOKIE='...' node scripts/presence-probe.mjs
 | `/list` | `/list`, `/tracked` | List manually tracked users |
 | `/notify` | `/notify <username> [online\|offline\|game\|all]` | Enable notification filters |
 | `/unnotify` | `/unnotify <username> [online\|offline\|game\|all]` | Disable notification filters |
-| `/stats` | `/stats [username] [7d\|30d\|all]` | Playtime and presence breakdown |
-| `/gamestats` | `/gamestats <game URL> [most] [user:<name>]` | Per-game player-hours (all time / today / last 7 / last 30 days) and a paginated list of recent or top players. `most` sorts by total time; `user:<name>` restricts to one tracked friend/user and lists their individual sessions. Scoped to the requester's own account only |
-| `/history` | `/history [username] [DD-MM-YYYY\|all]` | Session history, paginated inline |
+| `/stats` | `/stats [username] [7d\|30d\|all]` | Playtime and presence breakdown. Includes users with historical data even after they are unfriended or untracked |
+| `/gamestats` | `/gamestats <game URL> [most] [user:<name>]` | Per-game player-hours (all time / today / last 7 / last 30 days) and a paginated list of recent or top players. `most` sorts by total time; `user:<name>` restricts to one user (current or historical) and lists their individual sessions. Scoped to the requester's own account only |
+| `/history` | `/history [username] [DD-MM-YYYY\|all]` | Session history, paginated inline. Includes users with historical data even after they are unfriended or untracked |
 | `/badges` | `/badges [username]` | Recent badges with award dates; defaults to the connected account's own username. For a target that is a friend of some connected account, the friend's cookie is preferred (friend-only badge visibility). Paginated inline via an in-memory cursor cache |
 
-`/start` and `/help` are the only commands that work without a connected account. `/setcookie` is what connects one. `/status`, `/stats`, `/history`, and `/list` bypass the account check for callers in `ADMIN_USER_IDS` and then aggregate across all connected accounts; `/track`, `/untrack`, `/notify`, `/unnotify`, `/sync`, and `/badges` always require a connected account, even for admins. `/list` also answers to `/tracked`. `/gamestats` always requires a connected account and is **never** cross-account, even for admins: it only ever reads the requester's own tracked friends and users.
+`/start` and `/help` are the only commands that work without a connected account. `/setcookie` is what connects one. `/status`, `/stats`, `/history`, and `/list` bypass the account check for callers in `ADMIN_USER_IDS` and then aggregate across all connected accounts; `/track`, `/untrack`, `/notify`, `/unnotify`, `/sync`, and `/badges` always require a connected account, even for admins. `/list` also answers to `/tracked`. `/gamestats` always requires a connected account and is **never** cross-account, even for admins: it only ever reads the requester's own subjects (current friends and tracked users, plus every user that account has previously monitored). `/history` and `/stats` resolve usernames the same way, so an unfriended or `/untrack`ed user's history stays reachable.
 
 ## Architecture
 
@@ -164,7 +164,7 @@ Telegram ──long poll──▶ grammY bot (src/bot)
 
 ```
 src/
-  index.ts                 # boot: DB check, bot creation, workers, graceful shutdown
+  index.ts                 # boot: DB check, subject-identity backfill, bot creation, workers, graceful shutdown
   migrate-old-data.ts      # one-off importer for legacy JSON data
   bot/
     index.ts               # bot construction, error handler, command registration
@@ -176,6 +176,7 @@ src/
     presence/              # polling loop + change detection; manual tracking
     session/               # game/presence session lifecycle
     analytics/             # read-side queries for /status, /stats, /history
+    identity/              # durable per-account subject identity + username history
     notification/          # Telegram delivery, toggles, debounce
   workers/                 # self-rescheduling presence + sync loops
   lib/                     # env, prisma client, crypto, http wrapper, rate limiter, adaptive polling, date formatting
@@ -226,10 +227,23 @@ Endpoints used:
 | `TrackedUser` | Manually tracked users, with the same cache and toggle shape |
 | `GameSession` | Game lifecycle records (`startTime`, `endTime`, `duration`, place/universe/server IDs) |
 | `PresenceSession` | Presence lifecycle records (`0`=offline, `1`=website, `2`=in-game, `3`=studio) |
+| `SubjectIdentity` | Durable per-account identity for every user ever monitored (keyed by Roblox user id). Survives unfriending and `/untrack` |
+| `SubjectUsername` | Every username ever observed for a `SubjectIdentity`, so a renamed user stays searchable |
 
-`GameSession.subjectType` and `PresenceSession.subjectType` are `SessionSubjectType` (`FRIEND` | `TRACKED`) and identify which table the subject came from. Deleting a `RobloxAccount` cascades to all of its friends, tracked users, and sessions.
+`GameSession.subjectType` and `PresenceSession.subjectType` are `SessionSubjectType` (`FRIEND` | `TRACKED`) and identify which table the subject came from. Deleting a `RobloxAccount` cascades to all of its friends, tracked users, identities, and sessions. **Removing a *subject*** (unfriending, `/untrack`) only deletes the `Friend` / `TrackedUser` row — their identity and their `GameSession` / `PresenceSession` history are never cascaded away.
 
 Presence state is cached on the subject rows (`lastPresence`, `lastGameId`, `lastLocation`, `lastSeenAt`) so change detection needs no extra query, and `lastNotifiedAt` drives notification debounce.
+
+### Historical data (unfriended / untracked users)
+
+`Friend` and `TrackedUser` describe only the *current* lists; both are deleted on removal by design. `SubjectIdentity` is what makes history durable:
+
+- **Every observation records identity.** Friend sync, `/track`, and every presence poll upsert a `SubjectIdentity` row (and log the handle in `SubjectUsername`). Removal additionally records identity *before* the delete, so a handle is never lost.
+- **`/history`, `/stats`, and `/gamestats` resolve through it.** Username lookup checks current members first (preserving the original friend-then-tracked precedence), then the durable handle history. The `/gamestats` query scope is current friends ∪ tracked users ∪ identities, so removed users stay in scope.
+- **Username changes are searchable.** `SubjectUsername` keeps every handle ever seen (`isCurrent` flags the newest), so an old name still resolves.
+- **Identity rows are per account.** The same Roblox user monitored by two connected accounts keeps two independent rows; no query crosses accounts.
+- **Backfill.** The migration seeds identities from the current lists *and* from existing `GameSession` / `PresenceSession` subjects; startup re-runs an idempotent backfill. Subjects recovered this way have no username (there was none left to read) and stay addressable by Roblox user id only.
+- **`/status` and `/list` are unaffected**: they still describe current activity and current tracking only.
 
 ### `/gamestats` semantics
 
@@ -237,9 +251,9 @@ Presence state is cached on the subject rows (`lastPresence`, `lastGameId`, `las
 - **Windows are clipped, not "started-in"**: a session crossing a window edge (or local midnight) contributes only its in-window part. "Today" is calendar-based (since local midnight in `TZ_NAME`); "last 7 days" and "last 30 days" are **rolling** windows measured back from the current instant (`now − 7×24h`, `now − 30×24h`), matching `/stats`.
 - **The only remaining difference from `/stats`** is edge handling: `/stats` counts a session that *starts* in its window in full, while `/gamestats` counts only the part inside the window. They agree everywhere else (same rolling 7/30-day spans, same "today = local midnight"). "Today" can additionally differ from a plain 24-hour count because it is calendar-aligned, whereas `/stats` has no "today" concept at all.
 - **Grouping is by `universeId`** (the experience), so every sub-place of one experience counts together. Rows with a hidden place (`placeId = 0`, `universeId` null) and legacy-imported rows (no `universeId`) are excluded; when any are found in scope, the message footer says how many.
-- **Open sessions are capped** at the subject's last successful poll (`lastSeenAt`) for aggregation and display — this prevents bot downtime, skipped cycles, or throttle pauses from inflating an open session. Closed sessions always use their recorded `endTime`.
+- **Open sessions are capped** at the subject's last observed moment — the latest of their `lastSeenAt` (`Friend` / `TrackedUser` / durable `SubjectIdentity`) and their newest closed session end — for aggregation and display. This prevents bot downtime, skipped cycles, or throttle pauses from inflating an open session, and keeps the cap working after a subject is removed. Closed sessions always use their recorded `endTime`.
 - **Server hops are merged only in the `user:` session list** (`GAMESTATS_MERGE_GAP_SECONDS`): changing servers within one experience writes two adjacent rows, which are shown as one session. Totals always sum raw rows.
-- **Unfriending or untracking a user does not delete their sessions** — `GameSession` rows only cascade from `RobloxAccount`. But the scope is the account's *current* friends ∪ tracked users, so an unfriended/un-tracked subject silently drops out of `/gamestats` totals even though the rows remain (recoverable by re-adding them).
+- **Unfriending or untracking a user does not delete their sessions**, and the rows stay in scope: the `/gamestats` scope is the account's *current* friends ∪ tracked users **∪ every `SubjectIdentity` the account has observed**. A removed user's playtime therefore keeps counting toward the game totals, and `user:<name>` still resolves them. Only deleting the `RobloxAccount` removes anything.
 
 ## Security notes
 

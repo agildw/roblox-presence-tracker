@@ -389,7 +389,9 @@ export const ModelName = {
   Friend: 'Friend',
   TrackedUser: 'TrackedUser',
   GameSession: 'GameSession',
-  PresenceSession: 'PresenceSession'
+  PresenceSession: 'PresenceSession',
+  SubjectIdentity: 'SubjectIdentity',
+  SubjectUsername: 'SubjectUsername'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -405,7 +407,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "telegramUser" | "robloxAccount" | "friend" | "trackedUser" | "gameSession" | "presenceSession"
+    modelProps: "telegramUser" | "robloxAccount" | "friend" | "trackedUser" | "gameSession" | "presenceSession" | "subjectIdentity" | "subjectUsername"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -805,6 +807,138 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SubjectIdentity: {
+      payload: Prisma.$SubjectIdentityPayload<ExtArgs>
+      fields: Prisma.SubjectIdentityFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SubjectIdentityFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectIdentityPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SubjectIdentityFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectIdentityPayload>
+        }
+        findFirst: {
+          args: Prisma.SubjectIdentityFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectIdentityPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SubjectIdentityFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectIdentityPayload>
+        }
+        findMany: {
+          args: Prisma.SubjectIdentityFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectIdentityPayload>[]
+        }
+        create: {
+          args: Prisma.SubjectIdentityCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectIdentityPayload>
+        }
+        createMany: {
+          args: Prisma.SubjectIdentityCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.SubjectIdentityDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectIdentityPayload>
+        }
+        update: {
+          args: Prisma.SubjectIdentityUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectIdentityPayload>
+        }
+        deleteMany: {
+          args: Prisma.SubjectIdentityDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SubjectIdentityUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.SubjectIdentityUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectIdentityPayload>
+        }
+        aggregate: {
+          args: Prisma.SubjectIdentityAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSubjectIdentity>
+        }
+        groupBy: {
+          args: Prisma.SubjectIdentityGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SubjectIdentityGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SubjectIdentityCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SubjectIdentityCountAggregateOutputType> | number
+        }
+      }
+    }
+    SubjectUsername: {
+      payload: Prisma.$SubjectUsernamePayload<ExtArgs>
+      fields: Prisma.SubjectUsernameFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SubjectUsernameFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectUsernamePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SubjectUsernameFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectUsernamePayload>
+        }
+        findFirst: {
+          args: Prisma.SubjectUsernameFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectUsernamePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SubjectUsernameFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectUsernamePayload>
+        }
+        findMany: {
+          args: Prisma.SubjectUsernameFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectUsernamePayload>[]
+        }
+        create: {
+          args: Prisma.SubjectUsernameCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectUsernamePayload>
+        }
+        createMany: {
+          args: Prisma.SubjectUsernameCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.SubjectUsernameDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectUsernamePayload>
+        }
+        update: {
+          args: Prisma.SubjectUsernameUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectUsernamePayload>
+        }
+        deleteMany: {
+          args: Prisma.SubjectUsernameDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SubjectUsernameUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.SubjectUsernameUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubjectUsernamePayload>
+        }
+        aggregate: {
+          args: Prisma.SubjectUsernameAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSubjectUsername>
+        }
+        groupBy: {
+          args: Prisma.SubjectUsernameGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SubjectUsernameGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SubjectUsernameCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SubjectUsernameCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -950,6 +1084,34 @@ export const PresenceSessionScalarFieldEnum = {
 export type PresenceSessionScalarFieldEnum = (typeof PresenceSessionScalarFieldEnum)[keyof typeof PresenceSessionScalarFieldEnum]
 
 
+export const SubjectIdentityScalarFieldEnum = {
+  id: 'id',
+  robloxAccountId: 'robloxAccountId',
+  robloxUserId: 'robloxUserId',
+  username: 'username',
+  displayName: 'displayName',
+  lastSeenAt: 'lastSeenAt',
+  firstSeenAt: 'firstSeenAt',
+  lastResolvedAt: 'lastResolvedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SubjectIdentityScalarFieldEnum = (typeof SubjectIdentityScalarFieldEnum)[keyof typeof SubjectIdentityScalarFieldEnum]
+
+
+export const SubjectUsernameScalarFieldEnum = {
+  id: 'id',
+  subjectIdentityId: 'subjectIdentityId',
+  username: 'username',
+  firstSeenAt: 'firstSeenAt',
+  lastSeenAt: 'lastSeenAt',
+  isCurrent: 'isCurrent'
+} as const
+
+export type SubjectUsernameScalarFieldEnum = (typeof SubjectUsernameScalarFieldEnum)[keyof typeof SubjectUsernameScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1011,6 +1173,21 @@ export const GameSessionOrderByRelevanceFieldEnum = {
 } as const
 
 export type GameSessionOrderByRelevanceFieldEnum = (typeof GameSessionOrderByRelevanceFieldEnum)[keyof typeof GameSessionOrderByRelevanceFieldEnum]
+
+
+export const SubjectIdentityOrderByRelevanceFieldEnum = {
+  username: 'username',
+  displayName: 'displayName'
+} as const
+
+export type SubjectIdentityOrderByRelevanceFieldEnum = (typeof SubjectIdentityOrderByRelevanceFieldEnum)[keyof typeof SubjectIdentityOrderByRelevanceFieldEnum]
+
+
+export const SubjectUsernameOrderByRelevanceFieldEnum = {
+  username: 'username'
+} as const
+
+export type SubjectUsernameOrderByRelevanceFieldEnum = (typeof SubjectUsernameOrderByRelevanceFieldEnum)[keyof typeof SubjectUsernameOrderByRelevanceFieldEnum]
 
 
 
@@ -1168,6 +1345,8 @@ export type GlobalOmitConfig = {
   trackedUser?: Prisma.TrackedUserOmit
   gameSession?: Prisma.GameSessionOmit
   presenceSession?: Prisma.PresenceSessionOmit
+  subjectIdentity?: Prisma.SubjectIdentityOmit
+  subjectUsername?: Prisma.SubjectUsernameOmit
 }
 
 /* Types for Logging */

@@ -56,7 +56,9 @@ export const ModelName = {
   Friend: 'Friend',
   TrackedUser: 'TrackedUser',
   GameSession: 'GameSession',
-  PresenceSession: 'PresenceSession'
+  PresenceSession: 'PresenceSession',
+  SubjectIdentity: 'SubjectIdentity',
+  SubjectUsername: 'SubjectUsername'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -181,6 +183,34 @@ export const PresenceSessionScalarFieldEnum = {
 export type PresenceSessionScalarFieldEnum = (typeof PresenceSessionScalarFieldEnum)[keyof typeof PresenceSessionScalarFieldEnum]
 
 
+export const SubjectIdentityScalarFieldEnum = {
+  id: 'id',
+  robloxAccountId: 'robloxAccountId',
+  robloxUserId: 'robloxUserId',
+  username: 'username',
+  displayName: 'displayName',
+  lastSeenAt: 'lastSeenAt',
+  firstSeenAt: 'firstSeenAt',
+  lastResolvedAt: 'lastResolvedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SubjectIdentityScalarFieldEnum = (typeof SubjectIdentityScalarFieldEnum)[keyof typeof SubjectIdentityScalarFieldEnum]
+
+
+export const SubjectUsernameScalarFieldEnum = {
+  id: 'id',
+  subjectIdentityId: 'subjectIdentityId',
+  username: 'username',
+  firstSeenAt: 'firstSeenAt',
+  lastSeenAt: 'lastSeenAt',
+  isCurrent: 'isCurrent'
+} as const
+
+export type SubjectUsernameScalarFieldEnum = (typeof SubjectUsernameScalarFieldEnum)[keyof typeof SubjectUsernameScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -242,4 +272,19 @@ export const GameSessionOrderByRelevanceFieldEnum = {
 } as const
 
 export type GameSessionOrderByRelevanceFieldEnum = (typeof GameSessionOrderByRelevanceFieldEnum)[keyof typeof GameSessionOrderByRelevanceFieldEnum]
+
+
+export const SubjectIdentityOrderByRelevanceFieldEnum = {
+  username: 'username',
+  displayName: 'displayName'
+} as const
+
+export type SubjectIdentityOrderByRelevanceFieldEnum = (typeof SubjectIdentityOrderByRelevanceFieldEnum)[keyof typeof SubjectIdentityOrderByRelevanceFieldEnum]
+
+
+export const SubjectUsernameOrderByRelevanceFieldEnum = {
+  username: 'username'
+} as const
+
+export type SubjectUsernameOrderByRelevanceFieldEnum = (typeof SubjectUsernameOrderByRelevanceFieldEnum)[keyof typeof SubjectUsernameOrderByRelevanceFieldEnum]
 

@@ -12,14 +12,14 @@ generator client {
 // One Telegram account = one Roblox account (enforced via RobloxAccount.userId unique)
 // ─────────────────────────────────────────────────────────────────────────────
 model TelegramUser {
-  id         Int      @id @default(autoincrement())
-  telegramId String   @unique // Telegram user ID (stored as string for safety)
+  id         Int       @id @default(autoincrement())
+  telegramId String    @unique // Telegram user ID (stored as string for safety)
   username   String? // @username, may be absent
   firstName  String?
-  isDisabled Boolean  @default(false)
+  isDisabled Boolean   @default(false)
   disabledAt DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   robloxAccount RobloxAccount?
 
@@ -45,20 +45,20 @@ model RobloxAccount {
   // Auth health: consecutive failed cookie validations, and when the owner was
   // last alerted about an invalid cookie. Persisted so an invalid cookie does
   // not re-alert on every restart.
-  authFailureCount Int      @default(0)
+  authFailureCount Int       @default(0)
   authLastAlertAt  DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user         TelegramUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  friends      Friend[]
-  trackedUsers TrackedUser[]
-  gameSessions GameSession[]
-  presenceSessions PresenceSession[]
+  user              TelegramUser      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  friends           Friend[]
+  trackedUsers      TrackedUser[]
+  gameSessions      GameSession[]
+  presenceSessions  PresenceSession[]
+  subjectIdentities SubjectIdentity[]
 
   @@index([robloxUserId])
-
   @@map("RobloxAccount")
 }
 
@@ -98,7 +98,6 @@ model Friend {
   @@unique([robloxAccountId, friendUserId])
   @@index([friendUserId])
   @@index([robloxAccountId, lastPresence]) // fast filter for "who is online?"
-
   @@map("Friend")
 }
 
@@ -136,7 +135,6 @@ model TrackedUser {
 
   @@unique([robloxAccountId, robloxUserId])
   @@index([robloxUserId])
-
   @@map("TrackedUser")
 }
 
@@ -172,7 +170,6 @@ model GameSession {
   @@index([robloxAccountId, startTime]) // analytics: sessions by account over time
   @@index([robloxAccountId, subjectId]) // analytics: sessions per subject
   @@index([robloxAccountId, universeId, startTime]) // /gamestats: per-account universe window scans
-
   @@map("GameSession")
 }
 
@@ -195,8 +192,74 @@ model PresenceSession {
 
   @@index([subjectId])
   @@index([robloxAccountId, startTime])
-
   @@map("PresenceSession")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SubjectIdentity
+// Persistent identity + username history for every Roblox user that has been
+// monitored by an account (friend or tracked). This row is NEVER deleted when a
+// user is unfriended or untracked — `Friend` / `TrackedUser` only describe the
+// CURRENT lists, while this table is what keeps historical `GameSession` /
+// `PresenceSession` rows resolvable and searchable by any username the user has
+// ever had.
+//
+// Scoped by account so the same Roblox user monitored by two connected accounts
+// keeps two independent identity records (no cross-account leakage).
+// ─────────────────────────────────────────────────────────────────────────────
+model SubjectIdentity {
+  id              Int @id @default(autoincrement())
+  robloxAccountId Int
+
+  robloxUserId BigInt // canonical Roblox user ID
+
+  // Most recently observed profile fields (null when never resolved).
+  username    String?
+  displayName String?
+
+  // ⚡ Historical resolution: last observed presence + last poll time. Kept
+  // after removal so open sessions can still be capped reasonably.
+  lastSeenAt DateTime?
+
+  firstSeenAt    DateTime @default(now())
+  lastResolvedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  account   RobloxAccount     @relation(fields: [robloxAccountId], references: [id], onDelete: Cascade)
+  usernames SubjectUsername[]
+
+  @@unique([robloxAccountId, robloxUserId])
+  @@index([robloxUserId])
+  @@index([robloxAccountId, lastSeenAt])
+  @@index([robloxAccountId, username])
+  @@map("SubjectIdentity")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SubjectUsername
+// Every username ever observed for a SubjectIdentity. `user:` lookups match
+// against this table, so a user remains searchable after a Roblox username
+// change. `isCurrent` marks the most recent known handle.
+// ─────────────────────────────────────────────────────────────────────────────
+model SubjectUsername {
+  id                Int @id @default(autoincrement())
+  subjectIdentityId Int
+
+  username String // stored lower-cased for case-insensitive lookup
+
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  isCurrent Boolean @default(false)
+
+  identity SubjectIdentity @relation(fields: [subjectIdentityId], references: [id], onDelete: Cascade)
+
+  @@unique([subjectIdentityId, username])
+  @@index([username])
+  @@index([subjectIdentityId, isCurrent])
+  @@map("SubjectUsername")
 }
 
 enum SessionSubjectType {

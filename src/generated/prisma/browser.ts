@@ -47,3 +47,13 @@ export type GameSession = Prisma.GameSessionModel
  * 
  */
 export type PresenceSession = Prisma.PresenceSessionModel
+/**
+ * Model SubjectIdentity
+ * 
+ */
+export type SubjectIdentity = Prisma.SubjectIdentityModel
+/**
+ * Model SubjectUsername
+ * 
+ */
+export type SubjectUsername = Prisma.SubjectUsernameModel

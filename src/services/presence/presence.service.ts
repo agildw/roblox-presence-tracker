@@ -18,6 +18,7 @@ import { robloxService } from '../roblox/roblox.service.js';
 import { accountService } from '../account/account.service.js';
 import { notificationService } from '../notification/notification.service.js';
 import { sessionService } from '../session/session.service.js';
+import { subjectIdentityService } from '../identity/subject-identity.service.js';
 import { authHealthService } from '../account/auth-health.service.js';
 import { robloxRateLimiter } from '../../lib/ratelimit.js';
 import { env } from '../../lib/env.js';
@@ -240,6 +241,15 @@ export const presenceService = {
   ) {
     const presenceChanged = oldState.lastPresence !== newState.userPresenceType;
     const gameChanged = oldState.lastGameId !== newState.gameId;
+
+    // Record the observation in the durable identity table regardless of whether
+    // anything changed: it keeps `lastSeenAt` (used to cap open sessions) fresh
+    // and preserves the user's identity if they are later unfriended.
+    await subjectIdentityService.remember({
+      robloxAccountId: accountId,
+      subjectId,
+      lastSeenAt: new Date(),
+    });
 
     if (!presenceChanged && !gameChanged) return;
 

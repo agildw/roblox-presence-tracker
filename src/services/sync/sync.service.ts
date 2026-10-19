@@ -19,6 +19,7 @@
 
 import { prisma } from '../../lib/prisma.js';
 import { robloxService } from '../roblox/roblox.service.js';
+import { subjectIdentityService } from '../identity/subject-identity.service.js';
 import type { RobloxAccount } from '../../generated/prisma/client.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -106,13 +107,31 @@ export const syncService = {
       }
     }
 
+    // Keep the durable identity of every current friend fresh (also covers
+    // username changes, which are then searchable historically).
+    await subjectIdentityService.rememberMany(
+      dbFriends
+        .filter((f) => apiFriendIds.has(f.friendUserId))
+        .map((f) => ({
+          robloxAccountId: account.id,
+          subjectId: f.friendUserId,
+          username: f.username,
+          displayName: f.displayName,
+        })),
+    );
+
     // 5. Handle removed friends
+    //
+    // Only the `Friend` row is deleted — the user's GameSession/PresenceSession
+    // history is never touched. Their identity is (re)confirmed first so the
+    // historical rows stay resolvable by username after removal.
     const removed: SyncedFriend[] = [];
 
     if (removedIds.length > 0) {
-      // Capture info before deleting for the return value
+      const removedSet = new Set(removedIds);
+
       for (const dbFriend of dbFriends) {
-        if (removedIds.includes(dbFriend.friendUserId)) {
+        if (removedSet.has(dbFriend.friendUserId)) {
           removed.push({
             robloxUserId: dbFriend.friendUserId,
             username: dbFriend.username,
@@ -120,6 +139,15 @@ export const syncService = {
           });
         }
       }
+
+      await subjectIdentityService.rememberMany(
+        removed.map((f) => ({
+          robloxAccountId: account.id,
+          subjectId: f.robloxUserId,
+          username: f.username,
+          displayName: f.displayName,
+        })),
+      );
 
       await prisma.friend.deleteMany({
         where: {
@@ -155,9 +183,25 @@ export const syncService = {
               displayName: info.displayName,
             },
           });
+          await subjectIdentityService.remember({
+            robloxAccountId: account.id,
+            subjectId: tu.robloxUserId,
+            username: info.name,
+            displayName: info.displayName,
+          });
         }
       }
     }
+
+    // New friends get their identity recorded after their `Friend` row exists.
+    await subjectIdentityService.rememberMany(
+      added.map((f) => ({
+        robloxAccountId: account.id,
+        subjectId: f.robloxUserId,
+        username: f.username,
+        displayName: f.displayName,
+      })),
+    );
 
     return { added, removed, unchanged };
   },
